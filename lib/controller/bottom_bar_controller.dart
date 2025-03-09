@@ -21,8 +21,9 @@ class BottomBarController extends GetxController {
   RxList<String> bottomBarImageList = [
     Assets.images.home.path,
     Assets.images.task.path,
+    Assets.images.profileOption4.path,
     // '',
-    Assets.images.save.path,
+    Assets.images.needs.path,
     Assets.images.user.path,
   ].obs;
   RxList<String> bottomBarImageList2 = [
@@ -35,8 +36,9 @@ class BottomBarController extends GetxController {
   RxList<String> bottomBarMenuNameList = [
     AppString.home,
     AppString.service,
+    AppString.req,
     //'',
-    AppString.saved,
+    AppString.needs,
     AppString.profile,
   ].obs;
 }

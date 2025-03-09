@@ -8,6 +8,7 @@ import 'package:luxury_real_estate_flutter_ui_kit/configs/app_string.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/configs/app_style.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/controller/feedback_controller.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/gen/assets.gen.dart';
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 
 class FeedbackView extends StatelessWidget {
   FeedbackView({super.key});
@@ -53,7 +54,43 @@ class FeedbackView extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: AppSize.appSize20),
       child: Column(
         children: [
-          Obx(() => TextFormField(
+
+          Obx(() => RatingBar(
+            initialRating: feedbackController.rating.value,
+            direction: Axis.horizontal,
+            allowHalfRating: false,  // Disable half ratings
+            itemCount: 5,
+            ratingWidget: RatingWidget(
+              full: Icon(
+                Icons.star,
+                color: Color(0xFFFFA500),  // Static orange-yellow color for full star
+                size: AppSize.appSize30,
+              ),
+              half: Icon(
+                Icons.star_border,  // Dummy icon to satisfy the half parameter
+                color: Colors.transparent,  // Transparent color, as half rating is not used
+                size: AppSize.appSize30,
+              ),
+              empty: Icon(
+                Icons.star_border,
+                color: Color(0xFFFFA500),  // Grey color for empty star
+                size: AppSize.appSize30,
+              ),
+            ),
+            glow: false,
+            itemSize: AppSize.appSize30,
+            itemPadding: const EdgeInsets.only(right: AppSize.appSize16),
+            onRatingUpdate: (rating) {
+              feedbackController.updateRating(rating);
+            },
+          ))
+
+
+              .paddingOnly(top: AppSize.appSize26),
+
+
+
+          /* Obx(() => TextFormField(
             controller: feedbackController.selectFeedbackController,
             cursorColor: AppColor.primaryColor,
             style: AppStyle.heading4Regular(color: AppColor.textColor),
@@ -149,7 +186,9 @@ class FeedbackView extends StatelessWidget {
                 ),
               ),
             ) : const SizedBox.shrink(),
-          )),
+          )),*/
+
+
           TextFormField(
             controller: feedbackController.aboutFeedbackController,
             cursorColor: AppColor.primaryColor,
@@ -217,19 +256,26 @@ class FeedbackView extends StatelessWidget {
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
-      child: CommonButton(
-        onPressed: () {
-          Get.back();
+      child: Obx(() => CommonButton(
+        onPressed: feedbackController.isLoading.value ? null : () {
+          feedbackController.submitFeedback();
         },
         backgroundColor: AppColor.primaryColor,
-        child: Text(
+        child: feedbackController.isLoading.value
+            ? CircularProgressIndicator(color: Colors.white)
+            : Text(
           AppString.submitButton,
           style: AppStyle.heading5Medium(color: AppColor.whiteColor),
         ),
       ).paddingOnly(
-        left: AppSize.appSize16, right: AppSize.appSize16,
-        bottom: AppSize.appSize26, top: AppSize.appSize10,
-      ),
+        left: AppSize.appSize16,
+        right: AppSize.appSize16,
+        bottom: AppSize.appSize26,
+        top: AppSize.appSize10,
+      )),
     );
   }
+
 }
+
+

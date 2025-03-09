@@ -18,7 +18,13 @@ import 'package:luxury_real_estate_flutter_ui_kit/views/home/property_map_screen
 import 'package:luxury_real_estate_flutter_ui_kit/views/home/widget/explore_city_bottom_sheet.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/views/home/widget/manage_property_bottom_sheet.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
-
+import 'package:luxury_real_estate_flutter_ui_kit/controller/home_controller.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/views/search/search_view.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/model/propertydetails_model.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:luxury_real_estate_flutter_ui_kit/controller/property_details_controller.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/configs/share_pref.dart';
 class HomeView extends StatefulWidget {
   HomeView({super.key});
 
@@ -28,8 +34,16 @@ class HomeView extends StatefulWidget {
 
 class _HomeViewState extends State<HomeView> {
   HomeController homeController = Get.put(HomeController());
+  PropertyDetailsController propertyController = Get.put(PropertyDetailsController());
   ActivityController activityController = Get.put(ActivityController());
   final ScrollController _scrollController = ScrollController();
+  final HomeController homeController1 = Get.put(HomeController());
+  final List<Map<String, dynamic>> selectedProperties = []; // List to store IDs and Names
+  // In HomeController
+ // Rx<ApiResponse?> propertyDetails = Rx<ApiResponse?>(null);
+  List<bool> isSavedList = [];
+  bool isSaved = false;
+  RxMap<int, bool> isSavedMap = RxMap<int, bool>();
 
   void _scrollToBottom() {
     _scrollController.animateTo(
@@ -39,17 +53,54 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
+
+ /* Future<void> fetchPropertyDetails(int propertyId) async {
+    print('Fetching details for property ID: $propertyId');  // Debugging print
+
+    // Construct the URL by embedding the propertyId directly into the endpoint
+    final String url = 'https://project.artisans.qa/realestate/api/property/$propertyId';
+
+    try {
+      // Make the GET request
+      final response = await http.get(Uri.parse(url));
+
+      // Check if the request was successful
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = jsonDecode(response.body);
+        print('Decoded API Data: $data');
+        propertyDetails.value = ApiResponse.fromJson(data);
+        print('Property details loaded: ${propertyDetails.value?.property?.title}');
+      } else {
+        // Handle non-successful status codes (e.g., 404, 500)
+        print('Error: API returned status code ${response.statusCode}');
+      }
+    } catch (error) {
+      // Handle errors (e.g., network errors, timeout, etc.)
+      print('Error occurred while fetching property details: $error');
+    }
+  }*/
+  @override
+  void initState() {
+    super.initState();
+    homeController.checkTokenAndFetchProfile();  // Refetch the profile when the screen is loaded again
+  }
+
   @override
   Widget build(BuildContext context) {
     homeController.isTrendPropertyLiked.value = List<bool>.generate(
         homeController.searchImageList.length, (index) => false);
+   /* if (isSavedList.length != homeController.featuredProperties.length) {
+      isSavedList = List.generate(homeController.featuredProperties.length, (index) => false);
+    }*/
     return Stack(
       children: [
         Scaffold(
           backgroundColor: AppColor.whiteColor,
           body: buildHome(context),
           floatingActionButton: FloatingActionButton(
-            onPressed: () {
+            onPressed: () async{
+              //await homeController.fetchMapData();
+
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -89,35 +140,33 @@ class _HomeViewState extends State<HomeView> {
   Widget buildHome(BuildContext context) {
     int activeIndex = 1;
     var querySize = MediaQuery.of(context).size;
+
+
+
     return SingleChildScrollView(
       controller: _scrollController,
       physics: const ClampingScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          SizedBox(height: AppSize.appSize60),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
                 children: [
-                  // GestureDetector(
-                  //   onTap: () {
-                  //     Scaffold.of(context).openDrawer();
-                  //   },
-                  //   child: Image.asset(
-                  //     Assets.images.drawer.path,
-                  //     width: AppSize.appSize40,
-                  //     height: AppSize.appSize40,
-                  //   ).paddingOnly(right: AppSize.appSize16),
-                  // ),
+
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        AppString.hiFrancis,
-                        style: AppStyle.heading5Medium(
-                            color: AppColor.descriptionColor),
-                      ),
+                      Obx(() {
+                        final user = homeController.userProfile.value;
+                        final greetingName = user?.name ?? 'Customer'; // Default to 'Francis' if null
+                        return Text(
+                          'Hi, $greetingName',
+                          style: AppStyle.heading5Medium(color: AppColor.descriptionColor),
+                        );
+                      }),
                       Text(
                         AppString.welcome,
                         style: AppStyle.heading3Medium(
@@ -142,48 +191,6 @@ class _HomeViewState extends State<HomeView> {
             left: AppSize.appSize16,
             right: AppSize.appSize16,
           ),
-          // SingleChildScrollView(
-          //   physics: const ClampingScrollPhysics(),
-          //   padding: const EdgeInsets.only(left: AppSize.appSize16),
-          //   scrollDirection: Axis.horizontal,
-          //   child: Row(
-          //     children: List.generate(homeController.propertyOptionList.length,
-          //         (index) {
-          //       return GestureDetector(
-          //         onTap: () {
-          //           homeController.updateProperty(index);
-          //           if (index == AppSize.size7) {
-          //             Get.toNamed(AppRoutes.postPropertyView);
-          //           }
-          //         },
-          //         child: Obx(() => Container(
-          //               height: AppSize.appSize37,
-          //               margin: const EdgeInsets.only(right: AppSize.appSize16),
-          //               padding: const EdgeInsets.symmetric(
-          //                   horizontal: AppSize.appSize14),
-          //               decoration: BoxDecoration(
-          //                 borderRadius:
-          //                     BorderRadius.circular(AppSize.appSize12),
-          //                 color: homeController.selectProperty.value == index
-          //                     ? AppColor.primaryColor
-          //                     : AppColor.backgroundColor,
-          //               ),
-          //               child: Center(
-          //                 child: Text(
-          //                   homeController.propertyOptionList[index],
-          //                   style: AppStyle.heading5Regular(
-          //                     color:
-          //                         homeController.selectProperty.value == index
-          //                             ? AppColor.whiteColor
-          //                             : AppColor.descriptionColor,
-          //                   ),
-          //                 ),
-          //               ),
-          //             )),
-          //       );
-          //     }),
-          //   ).paddingOnly(top: AppSize.appSize26),
-          // ),
           Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(AppSize.appSize12),
@@ -202,7 +209,14 @@ class _HomeViewState extends State<HomeView> {
               style: AppStyle.heading4Regular(color: AppColor.textColor),
               readOnly: true,
               onTap: () {
-                Get.toNamed(AppRoutes.searchView);
+                print('Selected Properties: $selectedProperties');
+
+                Get.to(
+                  SearchView(),
+                  arguments: selectedProperties,
+                );
+
+
               },
               decoration: InputDecoration(
                 hintText: AppString.searchCity,
@@ -239,101 +253,6 @@ class _HomeViewState extends State<HomeView> {
             left: AppSize.appSize16,
             right: AppSize.appSize16,
           ),
-          // Row(
-          //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          //   children: [
-          //     Text(
-          //       AppString.yourListing,
-          //       style: AppStyle.heading3SemiBold(color: AppColor.textColor),
-          //     ),
-          //     GestureDetector(
-          //       onTap: () {
-          //         BottomBarController bottomBarController =
-          //             Get.put(BottomBarController());
-          //         bottomBarController.pageController.jumpToPage(AppSize.size1);
-          //       },
-          //       child: Text(
-          //         AppString.viewAll,
-          //         style:
-          //             AppStyle.heading5Medium(color: AppColor.descriptionColor),
-          //       ),
-          //     ),
-          //   ],
-          // ).paddingOnly(
-          //   top: AppSize.appSize26,
-          //   left: AppSize.appSize16,
-          //   right: AppSize.appSize16,
-          // ),
-          // Container(
-          //   padding: const EdgeInsets.all(AppSize.appSize10),
-          //   margin: const EdgeInsets.only(top: AppSize.appSize16),
-          //   decoration: BoxDecoration(
-          //     color: AppColor.primaryColor,
-          //     borderRadius: BorderRadius.circular(AppSize.appSize12),
-          //   ),
-          //   child: IntrinsicHeight(
-          //     child: Row(
-          //       children: [
-          //         Image.asset(
-          //           Assets.images.property1.path,
-          //           width: AppSize.appSize112,
-          //         ).paddingOnly(right: AppSize.appSize16),
-          //         Expanded(
-          //           child: Column(
-          //             crossAxisAlignment: CrossAxisAlignment.start,
-          //             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          //             mainAxisSize: MainAxisSize.max,
-          //             children: [
-          //               Text(
-          //                 AppString.rupees50Lac,
-          //                 style: AppStyle.heading5Medium(
-          //                     color: AppColor.whiteColor),
-          //               ),
-          //               Column(
-          //                 crossAxisAlignment: CrossAxisAlignment.start,
-          //                 children: [
-          //                   Text(
-          //                     AppString.sellFlat,
-          //                     style: AppStyle.heading5SemiBold(
-          //                         color: AppColor.whiteColor),
-          //                   ),
-          //                   Text(
-          //                     AppString.northBombaySociety,
-          //                     style: AppStyle.heading5Regular(
-          //                         color: AppColor.whiteColor),
-          //                   ),
-          //                 ],
-          //               ),
-          //               IntrinsicWidth(
-          //                 child: GestureDetector(
-          //                   onTap: () {
-          //                     managePropertyBottomSheet(context);
-          //                   },
-          //                   child: Column(
-          //                     crossAxisAlignment: CrossAxisAlignment.start,
-          //                     children: [
-          //                       Text(
-          //                         AppString.manageProperty,
-          //                         style: AppStyle.heading5Medium(
-          //                             color: AppColor.whiteColor),
-          //                       ),
-          //                       Container(
-          //                         margin: const EdgeInsets.only(
-          //                             top: AppSize.appSize3),
-          //                         height: AppSize.appSize1,
-          //                         color: AppColor.whiteColor,
-          //                       ),
-          //                     ],
-          //                   ),
-          //                 ),
-          //               ),
-          //             ],
-          //           ),
-          //         ),
-          //       ],
-          //     ),
-          //   ),
-          // ).paddingOnly(left: AppSize.appSize16, right: AppSize.appSize16),
           SizedBox(
             height: querySize.height * 0.02,
           ),
@@ -347,91 +266,7 @@ class _HomeViewState extends State<HomeView> {
                         horizontal: querySize.width * 0.02),
                     child: GestureDetector(
                       onTap: () {
-                        // String? screen = homeBannerProvidervalue
-                        //     .giftByVoucherItems.data![index].screen;
 
-                        // if (screen == "best-seller" ||
-                        //     screen == "new-arrival") {
-                        //   Navigator.push(
-                        //     context,
-                        //     MaterialPageRoute(
-                        //       builder: (context) =>
-                        //           BestSellerNewArrivalListingScreen(
-                        //         eventName: screen!,
-                        //         productListingScreenName:
-                        //             homeBannerProvidervalue.giftByVoucherItems
-                        //                     .data![index].screenName ??
-                        //                 '',
-                        //       ),
-                        //     ),
-                        //   );
-                        // } else if (screen == "gift-by-event" ||
-                        //     screen == "sub-category" ||
-                        //     screen == "collections") {
-                        //   Navigator.push(
-                        //     context,
-                        //     MaterialPageRoute(
-                        //       builder: (context) =>
-                        //           SubCategoryProductListingScreen(
-                        //         eventId: int.parse(homeBannerProvidervalue
-                        //             .giftByVoucherItems.data![index].screenId!),
-                        //         eventName: homeBannerProvidervalue
-                        //             .giftByVoucherItems.data![index].screen!,
-                        //         productListingScreenName:
-                        //             homeBannerProvidervalue.giftByVoucherItems
-                        //                     .data![index].screenName ??
-                        //                 '',
-                        //       ),
-                        //     ),
-                        //   );
-                        // } else if (screen == "products") {
-                        //   Navigator.push(
-                        //     context,
-                        //     MaterialPageRoute(
-                        //       builder: (context) => ProductDetailScreen(
-                        //         productId: int.parse(homeBannerProvidervalue
-                        //             .giftByVoucherItems.data![index].screenId!),
-                        //       ),
-                        //     ),
-                        //   );
-                        // } else if (screen == "customisation") {
-                        //   Navigator.push(
-                        //     context,
-                        //     MaterialPageRoute(
-                        //       builder: (context) => CustomisationScreen(
-                        //         widgetName: customProfileTopBar(
-                        //           querySize,
-                        //           context,
-                        //           "Customize",
-                        //         ),
-                        //       ),
-                        //     ),
-                        //   );
-                        // } else if (screen == "repair") {
-                        //   Navigator.push(
-                        //     context,
-                        //     MaterialPageRoute(
-                        //       builder: (context) => RepairScreen(
-                        //         widgetName: customProfileTopBar(
-                        //             querySize, context, "Repair"),
-                        //       ),
-                        //     ),
-                        //   );
-                        // } else if (screen == "gift-voucher") {
-                        //   Navigator.push(
-                        //     context,
-                        //     MaterialPageRoute(
-                        //       builder: (context) => GiftByVoucherScreen(
-                        //         giftByVoucherProvider:
-                        //             Provider.of<GiftByVoucherProvider>(context,
-                        //                 listen: false),
-                        //       ),
-                        //     ),
-                        //   );
-                        // } else {
-                        //   // Handle unknown or null screen values
-                        //   debugPrint("Unknown screen: $screen");
-                        // }
                       },
                       child: ClipRRect(
                         borderRadius:
@@ -461,32 +296,6 @@ class _HomeViewState extends State<HomeView> {
                                     SizedBox(
                                       width: querySize.width * 0.02,
                                     ),
-                                    // Flexible(
-                                    //   child: Text(
-                                    //     homeBannerProvidervalue
-                                    //             .giftByVoucherItems
-                                    //             .data![index]
-                                    //             .titleOne ??
-                                    //         "", // Replace with the desired text property
-                                    //     style: TextStyle(
-                                    //       fontFamily: 'ElMessiri',
-                                    //       color: Colors.white,
-                                    //       fontSize: 18,
-                                    //       fontWeight: FontWeight.bold,
-                                    //       shadows: [
-                                    //         Shadow(
-                                    //           blurRadius: 5.0,
-                                    //           color:
-                                    //               Colors.black.withOpacity(0.7),
-                                    //           offset: Offset(2.0, 2.0),
-                                    //         ),
-                                    //       ],
-                                    //     ),
-                                    //     overflow: TextOverflow.ellipsis,
-                                    //     maxLines:
-                                    //         3, // Limits to 1 line and adds ellipsis if overflow
-                                    //   ),
-                                    // ),
                                   ],
                                 ),
                                 Row(
@@ -494,32 +303,6 @@ class _HomeViewState extends State<HomeView> {
                                     SizedBox(
                                       width: querySize.width * 0.02,
                                     ),
-                                    // Flexible(
-                                    //   child: Text(
-                                    //     homeBannerProvidervalue
-                                    //             .giftByVoucherItems
-                                    //             .data![index]
-                                    //             .description ??
-                                    //         '', // Replace with the desired text property
-                                    //     style: TextStyle(
-                                    //       fontFamily: 'ElMessiri',
-                                    //       color: Colors.white,
-                                    //       fontSize: 16,
-                                    //       fontWeight: FontWeight.bold,
-                                    //       shadows: [
-                                    //         Shadow(
-                                    //           blurRadius: 5.0,
-                                    //           color:
-                                    //               Colors.black.withOpacity(0.7),
-                                    //           offset: Offset(2.0, 2.0),
-                                    //         ),
-                                    //       ],
-                                    //     ),
-                                    //     overflow: TextOverflow.ellipsis,
-                                    //     maxLines:
-                                    //         3, // Limits to 1 line and adds ellipsis if overflow
-                                    //   ),
-                                    // ),
                                   ],
                                 ),
                                 // Add other content below the text if needed
@@ -546,7 +329,7 @@ class _HomeViewState extends State<HomeView> {
               SizedBox(
                 height: querySize.height * 0.01,
               ),
-              AnimatedSmoothIndicator(
+              /*AnimatedSmoothIndicator(
                 activeIndex: activeIndex,
                 count: homeController.searchImageList.length,
                 effect: SlideEffect(
@@ -554,7 +337,7 @@ class _HomeViewState extends State<HomeView> {
                   dotWidth: querySize.width * 0.018,
                   activeDotColor: Colors.amber,
                 ),
-              ),
+              ),*/
             ],
           ),
           SingleChildScrollView(
@@ -570,6 +353,8 @@ class _HomeViewState extends State<HomeView> {
                 return GestureDetector(
                   onTap: () {
                     homeController.updateCountry(index);
+
+
                     if (index == AppSize.size2) {
                       _scrollToBottom();
                     }
@@ -617,790 +402,426 @@ class _HomeViewState extends State<HomeView> {
           ),
           Container(
             height: 100,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              physics: const ClampingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: 4,
-              itemBuilder: (context, index) {
-                return GestureDetector(
-                  onTap: () {
-                    print('app');
-                    Get.toNamed(AppRoutes.propertyListView);
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.only(right: 20),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // Circular container with circular image
-                        Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.grey[100],
-                            border: Border.all(
-                              color: Colors.grey[300]!,
-                              width: 1,
-                            ),
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(
-                                30), // Half of container width
-                            child: Image.asset(
-                              homeController.searchImageList[index],
-                              width: 60,
-                              height: 60,
-                              fit: BoxFit
-                                  .cover, // This will ensure image covers the circle
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          _getPropertyType(index),
-                          style: AppStyle.heading5Medium(color: Colors.black),
-                          // style: TextStyle(
-                          //   fontSize: 12,
-                          //   color: Colors.grey[800],
-                          // ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-          // Container(
-          //   height: 100, // Adjust height as needed
-          //   child: ListView.builder(
-          //     scrollDirection: Axis.horizontal,
-          //     physics: const ClampingScrollPhysics(),
-          //     padding: const EdgeInsets.symmetric(horizontal: 16),
-          //     itemCount: 4,
-          //     itemBuilder: (context, index) {
-          //       return Container(
-          //         margin: const EdgeInsets.only(right: 20),
-          //         child: Column(
-          //           //crossAxisAlignment: CrossAxisAlignment.center,
-          //           mainAxisAlignment: MainAxisAlignment.center,
-          //           children: [
-          //             // Circular container with icon/image
-          //             Container(
-          //               width: 60,
-          //               height: 60,
-          //               decoration: BoxDecoration(
-          //                 shape: BoxShape.circle,
-          //                 color: Colors.grey[100],
-          //               ),
-          //               child: Center(
-          //                 // If using image assets
-          //                 child: Image.asset(
-          //                   homeController.searchImageList[index],
-          //                   width: 30,
-          //                   height: 30,
-          //                 ),
+            child: Obx(() {
+              // Using Obx to reactively update the UI when the propertyTypes list changes
+              return ListView.builder(
+                scrollDirection: Axis.horizontal,
+                physics: const ClampingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: homeController.propertyTypes.length, // Dynamic item count based on the list length
+                itemBuilder: (context, index) {
+                  final property = homeController.propertyTypes[index];
+                  selectedProperties.add({
+                    'type': property.id, // Replace with actual property ID field
+                    'name': property.name, // Replace with actual property name field
+                  });
 
-          //                 // If using Icons, uncomment this
-          //                 // child: Icon(
-          //                 //   propertyTypes[index].icon,
-          //                 //   size: 30,
-          //                 //   color: AppColor.primaryColor,
-          //                 // ),
-          //               ),
-          //             ),
-          //             const SizedBox(height: 8),
-          //             // Text below icon
-          //             Text(
-          //               'Apartment',
-          //               style: TextStyle(
-          //                 fontSize: 12,
-          //                 color: Colors.grey[800],
-          //               ),
-          //             ),
-          //           ],
-          //         ),
-          //       );
-          //     },
-          //   ),
-          // ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                AppString.recommendedProject,
-                style: AppStyle.heading3SemiBold(color: AppColor.textColor),
-              ),
-              GestureDetector(
-                onTap: () {
-                  Get.toNamed(AppRoutes.propertyListView);
-                },
-                child: Text(
-                  AppString.viewAll,
-                  style:
-                      AppStyle.heading5Medium(color: AppColor.descriptionColor),
-                ),
-              ),
-            ],
-          ).paddingOnly(
-            top: AppSize.appSize26,
-            left: AppSize.appSize16,
-            right: AppSize.appSize16,
-          ),
-          SizedBox(
-            // height: AppSize.appSize372,
-            child: ListView.builder(
-              // scrollDirection: Axis.horizontal,
-              shrinkWrap: true, physics: NeverScrollableScrollPhysics(),
-              // physics: const ClampingScrollPhysics(),
-              padding: const EdgeInsets.only(left: AppSize.appSize12),
-              itemCount: homeController.searchImageList.length,
-              itemBuilder: (context, index) {
-                return GestureDetector(
-                  onTap: () {
-                    Get.toNamed(AppRoutes.propertyDetailsView);
-                  },
-                  child: Padding(
-                    padding: EdgeInsets.only(bottom: 10),
+                  return GestureDetector(
+                    onTap: () async {
+                      var typeResponse = await homeController.fetchTypeProperties(id: property.id.toString());
+
+                      print('Navigating to property type list view...');
+                      Get.toNamed(AppRoutes.propertyTypeListView, arguments: typeResponse,);
+
+                      print("id---------${property.id}");
+                    },
                     child: Container(
-                      width: AppSize.appSize300,
-                      padding: const EdgeInsets.all(AppSize.appSize10),
-                      margin: const EdgeInsets.only(right: AppSize.appSize16),
-                      decoration: BoxDecoration(
-                        color: AppColor.secondaryColor,
-                        borderRadius: BorderRadius.circular(AppSize.appSize12),
-                      ),
+                      margin: const EdgeInsets.only(right: 20),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Stack(
-                            children: [
-                              Image.asset(
-                                homeController.searchImageList[index],
-                                // height: AppSize.appSize200,
+                          // Circular container with circular image
+                          Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.grey[100],
+                              border: Border.all(
+                                color: Colors.grey[300]!,
+                                width: 1,
                               ),
-                              Positioned(
-                                right: AppSize.appSize6,
-                                top: AppSize.appSize6,
-                                child: GestureDetector(
-                                  onTap: () {
-                                    homeController.isTrendPropertyLiked[index] =
-                                        !homeController
-                                            .isTrendPropertyLiked[index];
-                                  },
-                                  child: Container(
-                                    width: AppSize.appSize32,
-                                    height: AppSize.appSize32,
-                                    decoration: BoxDecoration(
-                                      color: AppColor.whiteColor
-                                          .withOpacity(AppSize.appSizePoint50),
-                                      borderRadius: BorderRadius.circular(
-                                          AppSize.appSize6),
-                                    ),
-                                    child: Center(
-                                      child: Obx(() => Image.asset(
-                                            homeController
-                                                    .isTrendPropertyLiked[index]
-                                                ? Assets.images.saved.path
-                                                : Assets.images.save.path,
-                                            width: AppSize.appSize24,
-                                          )),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(30), // Half of container width
+                              child: property.icon != null && property.icon.isNotEmpty
+                                  ? Image.network(
+                                "https://project.artisans.qa/realestate/${property.icon}",
+                                width: 60,
+                                height: 60,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Icon(Icons.error, color: Colors.red);
+                                },
+                              )
+                                  : Icon(Icons.error, color: Colors.red), // Error icon for missing/invalid image
+                            ),
                           ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                homeController.searchTitleList[index],
-                                style: AppStyle.heading5SemiBold(
-                                    color: AppColor.textColor),
-                              ),
-                              Text(
-                                homeController.searchAddressList[index],
-                                style: AppStyle.heading5Regular(
-                                    color: AppColor.descriptionColor),
-                              ).paddingOnly(top: AppSize.appSize6),
-                            ],
-                          ).paddingOnly(top: AppSize.appSize8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                homeController.searchRupeesList[index],
-                                style: AppStyle.heading5Medium(
-                                    color: AppColor.primaryColor),
-                              ),
-                              Row(
-                                children: [
-                                  Text(
-                                    AppString.rating4Point5,
-                                    style: AppStyle.heading5Medium(
-                                        color: AppColor.primaryColor),
-                                  ).paddingOnly(right: AppSize.appSize6),
-                                  Image.asset(
-                                    Assets.images.star.path,
-                                    width: AppSize.appSize18,
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ).paddingOnly(top: AppSize.appSize6),
-                          Divider(
-                            color: AppColor.descriptionColor
-                                .withOpacity(AppSize.appSizePoint3),
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: List.generate(
-                                homeController.searchPropertyImageList.length,
-                                (index) {
-                              return Container(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: AppSize.appSize6,
-                                  horizontal: AppSize.appSize16,
-                                ),
-                                decoration: BoxDecoration(
-                                  borderRadius:
-                                      BorderRadius.circular(AppSize.appSize12),
-                                  border: Border.all(
-                                    color: AppColor.primaryColor,
-                                    width: AppSize.appSizePoint50,
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Image.asset(
-                                      homeController
-                                          .searchPropertyImageList[index],
-                                      width: AppSize.appSize18,
-                                      height: AppSize.appSize18,
-                                    ).paddingOnly(right: AppSize.appSize6),
-                                    Text(
-                                      homeController
-                                          .searchPropertyTitleList[index],
-                                      style: AppStyle.heading5Medium(
-                                          color: AppColor.textColor),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }),
+                          const SizedBox(height: 8),
+                          Text(
+                            property.name ?? '', // Display property name from the API
+                            style: AppStyle.heading5Medium(color: Colors.black),
                           ),
                         ],
                       ),
                     ),
-                  ),
-                );
-              },
-            ),
-          ).paddingOnly(top: AppSize.appSize16),
-          // SingleChildScrollView(
-          //   scrollDirection: Axis.horizontal,
-          //   physics: NeverScrollableScrollPhysics(),
-          //   physics: const ClampingScrollPhysics(),
-          //   child:
-          // Column(
-          //   crossAxisAlignment: CrossAxisAlignment.start,
-          //   children: [
-          //     SizedBox(
-          //       height: AppSize.appSize282,
-          //       child: ListView.builder(
-          //         // scrollDirection: Axis.horizontal,
-          //         shrinkWrap: true,
-          //         physics: const NeverScrollableScrollPhysics(),
-          //         padding: const EdgeInsets.only(left: AppSize.appSize16),
-          //         itemCount: homeController.projectImageList.length,
-          //         itemBuilder: (context, index) {
-          //           return GestureDetector(
-          //             onTap: () {
-          //               Get.toNamed(AppRoutes.propertyDetailsView);
-          //             },
-          //             child: Container(
-          //               padding: const EdgeInsets.all(AppSize.appSize10),
-          //               margin: const EdgeInsets.only(right: AppSize.appSize16),
-          //               decoration: BoxDecoration(
-          //                 color: AppColor.secondaryColor,
-          //                 borderRadius:
-          //                     BorderRadius.circular(AppSize.appSize12),
-          //               ),
-          //               child: Column(
-          //                 crossAxisAlignment: CrossAxisAlignment.start,
-          //                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          //                 children: [
-          //                   Image.asset(
-          //                     homeController.projectImageList[index],
-          //                     height: AppSize.appSize130,
-          //                   ),
-          //                   Container(
-          //                     padding: const EdgeInsets.all(AppSize.appSize6),
-          //                     decoration: BoxDecoration(
-          //                       border: Border.all(
-          //                         color: AppColor.primaryColor,
-          //                       ),
-          //                       borderRadius:
-          //                           BorderRadius.circular(AppSize.appSize12),
-          //                     ),
-          //                     child: Center(
-          //                       child: Text(
-          //                         homeController.projectPriceList[index],
-          //                         style: AppStyle.heading5Medium(
-          //                             color: AppColor.primaryColor),
-          //                       ),
-          //                     ),
-          //                   ),
-          //                   Column(
-          //                     crossAxisAlignment: CrossAxisAlignment.start,
-          //                     children: [
-          //                       Text(
-          //                         homeController.projectTitleList[index],
-          //                         style: AppStyle.heading5SemiBold(
-          //                             color: AppColor.textColor),
-          //                       ),
-          //                       Text(
-          //                         homeController.projectAddressList[index],
-          //                         style: AppStyle.heading5Regular(
-          //                             color: AppColor.descriptionColor),
-          //                       ).paddingOnly(top: AppSize.appSize6),
-          //                     ],
-          //                   ),
-          //                   Text(
-          //                     homeController.projectTimingList[index],
-          //                     style: AppStyle.heading6Regular(
-          //                         color: AppColor.descriptionColor),
-          //                   ),
-          //                 ],
-          //               ),
-          //             ),
-          //           );
-          //         },
-          //       ),
-          //     ).paddingOnly(top: AppSize.appSize16),
-          //     SizedBox(
-          //       height: AppSize.appSize282,
-          //       child: ListView.builder(
-          //         scrollDirection: Axis.horizontal,
-          //         shrinkWrap: true,
-          //         physics: const NeverScrollableScrollPhysics(),
-          //         padding: const EdgeInsets.only(left: AppSize.appSize16),
-          //         itemCount: homeController.project2ImageList.length,
-          //         itemBuilder: (context, index) {
-          //           return Container(
-          //             padding: const EdgeInsets.all(AppSize.appSize10),
-          //             margin: const EdgeInsets.only(right: AppSize.appSize16),
-          //             decoration: BoxDecoration(
-          //               color: AppColor.secondaryColor,
-          //               borderRadius: BorderRadius.circular(AppSize.appSize12),
-          //             ),
-          //             child: Column(
-          //               crossAxisAlignment: CrossAxisAlignment.start,
-          //               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          //               children: [
-          //                 Image.asset(
-          //                   homeController.project2ImageList[index],
-          //                   height: AppSize.appSize130,
-          //                 ),
-          //                 Container(
-          //                   padding: const EdgeInsets.all(AppSize.appSize6),
-          //                   decoration: BoxDecoration(
-          //                     border: Border.all(
-          //                       color: AppColor.primaryColor,
-          //                     ),
-          //                     borderRadius:
-          //                         BorderRadius.circular(AppSize.appSize12),
-          //                   ),
-          //                   child: Center(
-          //                     child: Text(
-          //                       homeController.project2PriceList[index],
-          //                       style: AppStyle.heading5Medium(
-          //                           color: AppColor.primaryColor),
-          //                     ),
-          //                   ),
-          //                 ),
-          //                 Column(
-          //                   crossAxisAlignment: CrossAxisAlignment.start,
-          //                   children: [
-          //                     Text(
-          //                       homeController.project2TitleList[index],
-          //                       style: AppStyle.heading5SemiBold(
-          //                           color: AppColor.textColor),
-          //                     ),
-          //                     Text(
-          //                       homeController.project2AddressList[index],
-          //                       style: AppStyle.heading5Regular(
-          //                           color: AppColor.descriptionColor),
-          //                     ).paddingOnly(top: AppSize.appSize6),
-          //                   ],
-          //                 ),
-          //                 Text(
-          //                   homeController.project2TimingList[index],
-          //                   style: AppStyle.heading6Regular(
-          //                       color: AppColor.descriptionColor),
-          //                 ),
-          //               ],
-          //             ),
-          //           );
-          //         },
-          //       ),
-          //     ).paddingOnly(top: AppSize.appSize16),
-          //   ],
-          // ),
-          //  ),
-          // Text(
-          //   AppString.recentResponse,
-          //   style: AppStyle.heading3SemiBold(color: AppColor.textColor),
-          // ).paddingOnly(
-          //   top: AppSize.appSize26,
-          //   left: AppSize.appSize16,
-          //   right: AppSize.appSize16,
-          // ),
-          // SizedBox(
-          //   height: AppSize.appSize150,
-          //   child: ListView.builder(
-          //     shrinkWrap: true,
-          //     scrollDirection: Axis.horizontal,
-          //     physics: const ClampingScrollPhysics(),
-          //     padding: const EdgeInsets.only(left: AppSize.appSize16),
-          //     itemCount: homeController.responseImageList.length,
-          //     itemBuilder: (context, index) {
-          //       return Container(
-          //         padding: const EdgeInsets.all(AppSize.appSize10),
-          //         margin: const EdgeInsets.only(right: AppSize.appSize16),
-          //         decoration: BoxDecoration(
-          //           border: Border.all(
-          //             color: AppColor.descriptionColor
-          //                 .withOpacity(AppSize.appSizePoint50),
-          //           ),
-          //           borderRadius: BorderRadius.circular(AppSize.appSize12),
-          //         ),
-          //         child: Column(
-          //           crossAxisAlignment: CrossAxisAlignment.start,
-          //           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          //           children: [
-          //             Container(
-          //               padding: const EdgeInsets.all(AppSize.appSize10),
-          //               decoration: BoxDecoration(
-          //                 color: AppColor.backgroundColor,
-          //                 borderRadius:
-          //                     BorderRadius.circular(AppSize.appSize16),
-          //               ),
-          //               child: Row(
-          //                 children: [
-          //                   Image.asset(
-          //                     homeController.responseImageList[index],
-          //                     width: AppSize.appSize50,
-          //                     height: AppSize.appSize50,
-          //                   ).paddingOnly(right: AppSize.appSize10),
-          //                   Column(
-          //                     crossAxisAlignment: CrossAxisAlignment.start,
-          //                     children: [
-          //                       Text(
-          //                         homeController.responseNameList[index],
-          //                         style: AppStyle.heading4Medium(
-          //                             color: AppColor.textColor),
-          //                       ).paddingOnly(bottom: AppSize.appSize4),
-          //                       IntrinsicHeight(
-          //                         child: Row(
-          //                           children: [
-          //                             Text(
-          //                               AppString.buyer,
-          //                               style: AppStyle.heading5Regular(
-          //                                   color: AppColor.descriptionColor),
-          //                             ),
-          //                             const VerticalDivider(
-          //                               color: AppColor.borderColor,
-          //                               width: AppSize.appSize20,
-          //                               indent: AppSize.appSize2,
-          //                               endIndent: AppSize.appSize2,
-          //                             ),
-          //                             Text(
-          //                               homeController
-          //                                   .responseTimingList[index],
-          //                               style: AppStyle.heading5Regular(
-          //                                   color: AppColor.descriptionColor),
-          //                             ),
-          //                           ],
-          //                         ),
-          //                       ),
-          //                     ],
-          //                   ),
-          //                 ],
-          //               ),
-          //             ),
-          //             Column(
-          //               crossAxisAlignment: CrossAxisAlignment.start,
-          //               children: [
-          //                 Row(
-          //                   children: [
-          //                     Image.asset(
-          //                       Assets.images.call.path,
-          //                       width: AppSize.appSize14,
-          //                     ).paddingOnly(right: AppSize.appSize6),
-          //                     Text(
-          //                       AppString.number1,
-          //                       style: AppStyle.heading6Regular(
-          //                           color: AppColor.primaryColor),
-          //                     ),
-          //                   ],
-          //                 ),
-          //                 Row(
-          //                   children: [
-          //                     Image.asset(
-          //                       Assets.images.email.path,
-          //                       width: AppSize.appSize14,
-          //                     ).paddingOnly(right: AppSize.appSize6),
-          //                     Text(
-          //                       homeController.responseEmailList[index],
-          //                       style: AppStyle.heading6Regular(
-          //                           color: AppColor.primaryColor),
-          //                     ),
-          //                   ],
-          //                 ).paddingOnly(top: AppSize.appSize8),
-          //               ],
-          //             ),
-          //           ],
-          //         ),
-          //       );
-          //     },
-          //   ),
-          // ).paddingOnly(top: AppSize.appSize16),
-          SizedBox(
-            height: querySize.height * 0.02,
-          ),
-          Column(
-            children: [
-              CarouselSlider.builder(
-                itemCount: activityController.propertyListImage.length,
-                itemBuilder: (context, index, realIndex) {
-                  return Padding(
-                    padding: EdgeInsets.symmetric(
-                        horizontal: querySize.width * 0.02),
-                    child: GestureDetector(
-                      onTap: () {
-                        // String? screen = homeBannerProvidervalue
-                        //     .giftByVoucherItems.data![index].screen;
-
-                        // if (screen == "best-seller" ||
-                        //     screen == "new-arrival") {
-                        //   Navigator.push(
-                        //     context,
-                        //     MaterialPageRoute(
-                        //       builder: (context) =>
-                        //           BestSellerNewArrivalListingScreen(
-                        //         eventName: screen!,
-                        //         productListingScreenName:
-                        //             homeBannerProvidervalue.giftByVoucherItems
-                        //                     .data![index].screenName ??
-                        //                 '',
-                        //       ),
-                        //     ),
-                        //   );
-                        // } else if (screen == "gift-by-event" ||
-                        //     screen == "sub-category" ||
-                        //     screen == "collections") {
-                        //   Navigator.push(
-                        //     context,
-                        //     MaterialPageRoute(
-                        //       builder: (context) =>
-                        //           SubCategoryProductListingScreen(
-                        //         eventId: int.parse(homeBannerProvidervalue
-                        //             .giftByVoucherItems.data![index].screenId!),
-                        //         eventName: homeBannerProvidervalue
-                        //             .giftByVoucherItems.data![index].screen!,
-                        //         productListingScreenName:
-                        //             homeBannerProvidervalue.giftByVoucherItems
-                        //                     .data![index].screenName ??
-                        //                 '',
-                        //       ),
-                        //     ),
-                        //   );
-                        // } else if (screen == "products") {
-                        //   Navigator.push(
-                        //     context,
-                        //     MaterialPageRoute(
-                        //       builder: (context) => ProductDetailScreen(
-                        //         productId: int.parse(homeBannerProvidervalue
-                        //             .giftByVoucherItems.data![index].screenId!),
-                        //       ),
-                        //     ),
-                        //   );
-                        // } else if (screen == "customisation") {
-                        //   Navigator.push(
-                        //     context,
-                        //     MaterialPageRoute(
-                        //       builder: (context) => CustomisationScreen(
-                        //         widgetName: customProfileTopBar(
-                        //           querySize,
-                        //           context,
-                        //           "Customize",
-                        //         ),
-                        //       ),
-                        //     ),
-                        //   );
-                        // } else if (screen == "repair") {
-                        //   Navigator.push(
-                        //     context,
-                        //     MaterialPageRoute(
-                        //       builder: (context) => RepairScreen(
-                        //         widgetName: customProfileTopBar(
-                        //             querySize, context, "Repair"),
-                        //       ),
-                        //     ),
-                        //   );
-                        // } else if (screen == "gift-voucher") {
-                        //   Navigator.push(
-                        //     context,
-                        //     MaterialPageRoute(
-                        //       builder: (context) => GiftByVoucherScreen(
-                        //         giftByVoucherProvider:
-                        //             Provider.of<GiftByVoucherProvider>(context,
-                        //                 listen: false),
-                        //       ),
-                        //     ),
-                        //   );
-                        // } else {
-                        //   // Handle unknown or null screen values
-                        //   debugPrint("Unknown screen: $screen");
-                        // }
-                      },
-                      child: ClipRRect(
-                        borderRadius:
-                            BorderRadius.circular(querySize.height * 0.02),
-                        child: Container(
-                          width: double.infinity,
-                          height: querySize.height * 0.24,
-                          decoration: BoxDecoration(
-                            image: DecorationImage(
-                              image: AssetImage(
-                                activityController.propertyListImage[index],
-                              ),
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(
-                                16.0), // Adjust padding as needed
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                SizedBox(
-                                  height: querySize.height * 0.05,
-                                ),
-                                Row(
-                                  children: [
-                                    SizedBox(
-                                      width: querySize.width * 0.02,
-                                    ),
-                                    // Flexible(
-                                    //   child: Text(
-                                    //     homeBannerProvidervalue
-                                    //             .giftByVoucherItems
-                                    //             .data![index]
-                                    //             .titleOne ??
-                                    //         "", // Replace with the desired text property
-                                    //     style: TextStyle(
-                                    //       fontFamily: 'ElMessiri',
-                                    //       color: Colors.white,
-                                    //       fontSize: 18,
-                                    //       fontWeight: FontWeight.bold,
-                                    //       shadows: [
-                                    //         Shadow(
-                                    //           blurRadius: 5.0,
-                                    //           color:
-                                    //               Colors.black.withOpacity(0.7),
-                                    //           offset: Offset(2.0, 2.0),
-                                    //         ),
-                                    //       ],
-                                    //     ),
-                                    //     overflow: TextOverflow.ellipsis,
-                                    //     maxLines:
-                                    //         3, // Limits to 1 line and adds ellipsis if overflow
-                                    //   ),
-                                    // ),
-                                  ],
-                                ),
-                                Row(
-                                  children: [
-                                    SizedBox(
-                                      width: querySize.width * 0.02,
-                                    ),
-                                    // Flexible(
-                                    //   child: Text(
-                                    //     homeBannerProvidervalue
-                                    //             .giftByVoucherItems
-                                    //             .data![index]
-                                    //             .description ??
-                                    //         '', // Replace with the desired text property
-                                    //     style: TextStyle(
-                                    //       fontFamily: 'ElMessiri',
-                                    //       color: Colors.white,
-                                    //       fontSize: 16,
-                                    //       fontWeight: FontWeight.bold,
-                                    //       shadows: [
-                                    //         Shadow(
-                                    //           blurRadius: 5.0,
-                                    //           color:
-                                    //               Colors.black.withOpacity(0.7),
-                                    //           offset: Offset(2.0, 2.0),
-                                    //         ),
-                                    //       ],
-                                    //     ),
-                                    //     overflow: TextOverflow.ellipsis,
-                                    //     maxLines:
-                                    //         3, // Limits to 1 line and adds ellipsis if overflow
-                                    //   ),
-                                    // ),
-                                  ],
-                                ),
-                                // Add other content below the text if needed
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
                   );
                 },
-                options: CarouselOptions(
-                  onPageChanged: (index, reason) {
-                    setState(() {
-                      activeIndex = index;
-                    });
-                  },
-                  viewportFraction: 1,
-                  height: querySize.height * 0.24,
-                  autoPlay: true,
-                  autoPlayInterval: const Duration(seconds: 5),
-                ),
-              ),
-              SizedBox(
-                height: querySize.height * 0.01,
-              ),
-              AnimatedSmoothIndicator(
-                activeIndex: activeIndex,
-                count: homeController.searchImageList.length,
-                effect: SlideEffect(
-                  dotHeight: querySize.height * 0.008,
-                  dotWidth: querySize.width * 0.018,
-                  activeDotColor: Colors.amber,
-                ),
-              ),
-            ],
+              );
+            }),
           ),
+
+          SizedBox(
+            child: Obx(() {
+              if (homeController.isLoading.value) {
+                // Show the loading indicator while data is being fetched
+                return Center(
+                  child: CircularProgressIndicator(),
+                );
+              }
+              else if (homeController.featuredProperties.isEmpty) {
+                // Show "No Data Available" message when no properties are fetched
+                return Padding(
+                  padding: EdgeInsets.only(top: 0.0), // Adjust the padding as needed
+                  child: Center(
+
+                  ),
+                );
+              }
+
+              else {
+                // Show the list when data is available
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // "Featured Properties" Text above the list
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: AppSize.appSize12),
+                      child: Text(
+                        "Featured Properties",
+                        style: AppStyle.heading3SemiBold(color: AppColor.textColor),
+                      ).paddingOnly(
+                        top: AppSize.appSize26,
+                        left: AppSize.appSize5,
+                        right: AppSize.appSize16,
+                      ),
+                    ),
+                   // Optional: Add some space between title and list
+
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: NeverScrollableScrollPhysics(),
+                      padding: const EdgeInsets.only(left: AppSize.appSize12),
+                      itemCount: homeController.featuredProperties.length, // Use the dynamic list length
+                      itemBuilder: (context, index) {
+                        final property = homeController.featuredProperties[index];
+                        if (!isSavedMap.containsKey(property.id)) {
+                          isSavedMap[property.id] = false;
+                        }
+
+                        // Access each property
+                        return GestureDetector(
+                          onTap: () async {
+                            /*final int propertyId = property.id;
+                            print('Tapped on property with ID: $propertyId');
+
+                            // Wait for the API call to finish before proceeding
+                            await fetchPropertyDetails(propertyId);
+
+                            // Print the property details that will be passed to the next view
+                            print('Passing property details: ${propertyDetails.value?.property?.title}');
+
+                            Get.toNamed(AppRoutes.propertyDetailsView, arguments: propertyDetails.value);*/
+                            final int propertyId = property.id;
+                            print('Tapped on property with ID: $propertyId');
+                           // await propertyController.fetchPropertyDetails(propertyId); // Fetch details
+                            //Get.toNamed(AppRoutes.propertyDetailsView, arguments: propertyController.propertyDetails.value);
+                            Get.toNamed(AppRoutes.propertyDetailsView, arguments: propertyId);
+
+
+
+
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: Container(
+                              width: AppSize.appSize300,
+                              padding: const EdgeInsets.all(AppSize.appSize10),
+                              margin: const EdgeInsets.only(right: AppSize.appSize16),
+                              decoration: BoxDecoration(
+                                color: AppColor.secondaryColor,
+                                borderRadius: BorderRadius.circular(AppSize.appSize12),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  // Image and like button
+                                  Stack(
+                                    children: [
+                                      Image.network(
+                                        property.thumbnailImage, // Load thumbnail from model
+                                        height: AppSize.appSize200,
+                                        width: double.infinity,
+                                        fit: BoxFit.cover,
+                                      ),
+                                      Positioned(
+                                        right: AppSize.appSize6,
+                                        top: AppSize.appSize6,
+                                        child: GestureDetector(
+                                          onTap: () async {
+                                            // Check for token before proceeding.
+                                            final token = await UserTypeManager.getToken();
+                                            if (token == null) {
+                                              // If no token, prompt the user to log in.
+                                              Get.snackbar(
+                                                'Login Required',
+                                                'Please login to add or remove property from wishlist.',
+                                                snackPosition: SnackPosition.TOP,
+                                              );
+                                              Get.toNamed(AppRoutes.loginView);
+                                              return;
+                                            }
+
+                                            // Toggle the saved state.
+                                            bool newState = !isSavedMap[property.id]!;
+                                            setState(() {
+                                              isSavedMap[property.id] = newState;
+                                            });
+
+                                            final int propertyId = property.id;
+                                            if (newState) {
+                                              // If saved state is true, call the add-to-wishlist API.
+                                              final url = Uri.parse(
+                                                'https://project.artisans.qa/realestate/api/user/add-to-wishlist/$propertyId',
+                                              );
+                                              try {
+                                                final response = await http.get(
+                                                  url,
+                                                  headers: {
+                                                    'Authorization': 'Bearer $token',
+                                                  },
+                                                );
+                                                print('Add-to-Wishlist API Response: ${response.body}');
+                                                print('Property added to wishlist with ID: $propertyId');
+                                              } catch (error) {
+                                                print('Error calling add-to-wishlist API: $error');
+                                                Get.snackbar(
+                                                  'Error',
+                                                  'Failed to add property to wishlist.',
+                                                  snackPosition: SnackPosition.TOP,
+                                                );
+                                              }
+                                            } else {
+                                              // If saved state is false, call the remove-wishlist API.
+                                              final url = Uri.parse(
+                                                'https://project.artisans.qa/realestate/api/user/remove-wishlist/$propertyId',
+                                              );
+                                              try {
+                                                final response = await http.delete(
+                                                  url,
+                                                  headers: {
+                                                    'Authorization': 'Bearer $token',
+                                                  },
+                                                );
+                                                print('Remove-Wishlist API Response: ${response.body}');
+                                                print('Property removed ID: $propertyId');
+                                              } catch (error) {
+                                                print('Error calling remove-wishlist API: $error');
+                                                Get.snackbar(
+                                                  'Error',
+                                                  'Failed to remove property from wishlist.',
+                                                  snackPosition: SnackPosition.TOP,
+                                                );
+                                              }
+                                            }
+                                          },
+                                          child: Container(
+                                            width: AppSize.appSize32,
+                                            height: AppSize.appSize32,
+                                            decoration: BoxDecoration(
+                                              color: AppColor.whiteColor.withOpacity(0.5),
+                                              borderRadius: BorderRadius.circular(AppSize.appSize6),
+                                              border: Border.all(
+                                                color: Colors.transparent,
+                                                width: 1,
+                                              ),
+                                            ),
+                                            child: Icon(
+                                              isSavedMap[property.id] == true
+                                                  ? Icons.bookmark
+                                                  : Icons.bookmark_border,
+                                              size: AppSize.appSize20,
+                                              color: isSavedMap[property.id] == true
+                                                  ? AppColor.primaryColor
+                                                  : AppColor.primaryColor.withOpacity(0.6),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+
+
+                                    ],
+                                  ),
+                                  // Title and address
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        property.title, // Title from API
+                                        style: AppStyle.heading5SemiBold(color: AppColor.textColor),
+                                      ),
+                                      SizedBox(height: AppSize.appSize6),
+                                      Text(
+                                        property.address, // Address from API
+                                        style: AppStyle.heading5Regular(color: AppColor.descriptionColor),
+                                      ),
+                                    ],
+                                  ).paddingOnly(top: AppSize.appSize8),
+                                  // Price and ratings
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        "QAR ${property.price}", // Add "QAR" before the price
+                                        style: AppStyle.heading5Medium(color: AppColor.primaryColor),
+                                      ),
+                                      Row(
+                                        children: [
+                                          Text(
+                                            property.totalRating != null
+                                                ? property.totalRating.toString()
+                                                : 'No Rating', // Fallback for null value
+                                            style: AppStyle.heading5Medium(color: AppColor.primaryColor),
+                                          ),
+                                          SizedBox(width: AppSize.appSize6),
+                                          Icon(
+                                            Icons.star,
+                                            color: Color(0xFFFFB84D),
+                                            size: AppSize.appSize18,
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ).paddingOnly(top: AppSize.appSize6),
+                                  Divider(
+                                    color: AppColor.descriptionColor.withOpacity(AppSize.appSizePoint3),
+                                  ),
+                                  // Display number of bedrooms, bathrooms, and area (keeping the design same)
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      // Display number of bedrooms
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: AppSize.appSize6,
+                                          horizontal: AppSize.appSize16,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(AppSize.appSize12),
+                                          border: Border.all(
+                                            color: AppColor.primaryColor,
+                                            width: AppSize.appSizePoint50,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              Icons.bed,
+                                              color: Colors.blueGrey,
+                                              size: AppSize.appSize18,
+                                            ),
+                                            SizedBox(width: AppSize.appSize6),
+                                            Text(
+                                              '${property.totalBedroom} ',
+                                              style: AppStyle.heading5Medium(color: AppColor.textColor),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      // Display number of bathrooms
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: AppSize.appSize6,
+                                          horizontal: AppSize.appSize16,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(AppSize.appSize12),
+                                          border: Border.all(
+                                            color: AppColor.primaryColor,
+                                            width: AppSize.appSizePoint50,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              Icons.bathtub,
+                                              color: Colors.blueGrey,
+                                              size: AppSize.appSize18,
+                                            ),
+                                            SizedBox(width: AppSize.appSize6),
+                                            Text(
+                                              '${property.totalBathroom} ',
+                                              style: AppStyle.heading5Medium(color: AppColor.textColor),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      // Display area
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: AppSize.appSize6,
+                                          horizontal: AppSize.appSize16,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(AppSize.appSize12),
+                                          border: Border.all(
+                                            color: AppColor.primaryColor,
+                                            width: AppSize.appSizePoint50,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              Icons.area_chart,
+                                              color: Colors.blueGrey,
+                                              size: AppSize.appSize18,
+                                            ),
+                                            SizedBox(width: AppSize.appSize6),
+                                            Text(
+                                              '${property.totalArea} sq/m',
+                                              style: AppStyle.heading5Medium(color: AppColor.textColor),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ).paddingOnly(top: AppSize.appSize6),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ).paddingOnly(top: AppSize.appSize16),
+                  ],
+                );
+              }
+            }),
+          ),
+
+
           Text(
-            AppString.basedOnSearchTrends,
+            AppString.newprop,
             style: AppStyle.heading3SemiBold(color: AppColor.textColor),
           ).paddingOnly(
             top: AppSize.appSize26,
             left: AppSize.appSize16,
             right: AppSize.appSize16,
           ),
+
+
+
           SizedBox(
             height: AppSize.appSize372,
             child: ListView.builder(
@@ -1408,11 +829,20 @@ class _HomeViewState extends State<HomeView> {
               shrinkWrap: true,
               physics: const ClampingScrollPhysics(),
               padding: const EdgeInsets.only(left: AppSize.appSize16),
-              itemCount: homeController.searchImageList.length,
+              itemCount: homeController.newProperties.length,
               itemBuilder: (context, index) {
+                final property = homeController.newProperties[index];
+                if (!isSavedMap.containsKey(property.id)) {
+                  isSavedMap[property.id] = false;
+                }
                 return GestureDetector(
-                  onTap: () {
-                    Get.toNamed(AppRoutes.propertyDetailsView);
+                  onTap: () async {
+                    final int propertyId = property.id;
+                    print('Tapped on property with ID: $propertyId');
+                   // await propertyController.fetchPropertyDetails(propertyId); // Fetch details
+                    //Get.toNamed(AppRoutes.propertyDetailsView, arguments: propertyController.propertyDetails.value);
+                    Get.toNamed(AppRoutes.propertyDetailsView, arguments: propertyId);
+                    //Get.toNamed(AppRoutes.propertyDetailsView);
                   },
                   child: Container(
                     width: AppSize.appSize300,
@@ -1428,36 +858,102 @@ class _HomeViewState extends State<HomeView> {
                       children: [
                         Stack(
                           children: [
-                            Image.asset(
-                              homeController.searchImageList[index],
+                            Image.network(
+                              property.thumbnailImage, // Load thumbnail from model
                               height: AppSize.appSize200,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
                             ),
                             Positioned(
                               right: AppSize.appSize6,
                               top: AppSize.appSize6,
                               child: GestureDetector(
-                                onTap: () {
-                                  homeController.isTrendPropertyLiked[index] =
-                                      !homeController
-                                          .isTrendPropertyLiked[index];
+                                onTap: () async {
+                                  // Check for token before proceeding.
+                                  final token = await UserTypeManager.getToken();
+                                  if (token == null) {
+                                    // If no token, prompt the user to log in.
+                                    Get.snackbar(
+                                      'Login Required',
+                                      'Please login to add or remove property from wishlist.',
+                                      snackPosition: SnackPosition.TOP,
+                                    );
+                                    Get.toNamed(AppRoutes.loginView);
+                                    return;
+                                  }
+
+                                  // Toggle the saved state.
+                                  bool newState = !isSavedMap[property.id]!;
+                                  setState(() {
+                                    isSavedMap[property.id] = newState;
+                                  });
+
+                                  final int propertyId = property.id;
+                                  if (newState) {
+                                    // If saved state is true, call the add-to-wishlist API.
+                                    final url = Uri.parse(
+                                      'https://project.artisans.qa/realestate/api/user/add-to-wishlist/$propertyId',
+                                    );
+                                    try {
+                                      final response = await http.get(
+                                        url,
+                                        headers: {
+                                          'Authorization': 'Bearer $token',
+                                        },
+                                      );
+                                      print('Add-to-Wishlist API Response: ${response.body}');
+                                      print('Property added to wishlist with ID: $propertyId');
+                                    } catch (error) {
+                                      print('Error calling add-to-wishlist API: $error');
+                                      Get.snackbar(
+                                        'Error',
+                                        'Failed to add property to wishlist.',
+                                        snackPosition: SnackPosition.TOP,
+                                      );
+                                    }
+                                  } else {
+                                    // If saved state is false, call the remove-wishlist API.
+                                    final url = Uri.parse(
+                                      'https://project.artisans.qa/realestate/api/user/remove-wishlist/$propertyId',
+                                    );
+                                    try {
+                                      final response = await http.delete(
+                                        url,
+                                        headers: {
+                                          'Authorization': 'Bearer $token',
+                                        },
+                                      );
+                                      print('Remove-Wishlist API Response: ${response.body}');
+                                      print('Property removed ID: $propertyId');
+                                    } catch (error) {
+                                      print('Error calling remove-wishlist API: $error');
+                                      Get.snackbar(
+                                        'Error',
+                                        'Failed to remove property from wishlist.',
+                                        snackPosition: SnackPosition.TOP,
+                                      );
+                                    }
+                                  }
                                 },
                                 child: Container(
                                   width: AppSize.appSize32,
                                   height: AppSize.appSize32,
                                   decoration: BoxDecoration(
-                                    color: AppColor.whiteColor
-                                        .withOpacity(AppSize.appSizePoint50),
-                                    borderRadius:
-                                        BorderRadius.circular(AppSize.appSize6),
+                                    color: AppColor.whiteColor.withOpacity(0.5),
+                                    borderRadius: BorderRadius.circular(AppSize.appSize6),
+                                    border: Border.all(
+                                      color: Colors.transparent,
+                                      width: 1,
+                                    ),
                                   ),
-                                  child: Center(
-                                    child: Obx(() => Image.asset(
-                                          homeController
-                                                  .isTrendPropertyLiked[index]
-                                              ? Assets.images.saved.path
-                                              : Assets.images.save.path,
-                                          width: AppSize.appSize24,
-                                        )),
+                                  child: Icon(
+                                    isSavedMap[property.id] == true
+                                        ? Icons.bookmark
+                                        : Icons.bookmark_border,
+                                    size: AppSize.appSize20,
+                                    color: isSavedMap[property.id] == true
+                                        ? AppColor.primaryColor
+                                        : AppColor.primaryColor.withOpacity(0.6),
                                   ),
                                 ),
                               ),
@@ -1468,35 +964,37 @@ class _HomeViewState extends State<HomeView> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              homeController.searchTitleList[index],
+                              property.title,
                               style: AppStyle.heading5SemiBold(
                                   color: AppColor.textColor),
                             ),
-                            Text(
-                              homeController.searchAddressList[index],
+                            /*Text(
+                              property.address,
                               style: AppStyle.heading5Regular(
                                   color: AppColor.descriptionColor),
-                            ).paddingOnly(top: AppSize.appSize6),
+                            ).paddingOnly(top: AppSize.appSize6),*/
                           ],
                         ).paddingOnly(top: AppSize.appSize8),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              homeController.searchRupeesList[index],
-                              style: AppStyle.heading5Medium(
-                                  color: AppColor.primaryColor),
+                              "QAR ${property.price}", // Add "QAR" before the price
+                              style: AppStyle.heading5Medium(color: AppColor.primaryColor),
                             ),
                             Row(
                               children: [
                                 Text(
-                                  AppString.rating4Point5,
-                                  style: AppStyle.heading5Medium(
-                                      color: AppColor.primaryColor),
-                                ).paddingOnly(right: AppSize.appSize6),
-                                Image.asset(
-                                  Assets.images.star.path,
-                                  width: AppSize.appSize18,
+                                  property.totalRating != null
+                                      ? property.totalRating.toString()
+                                      : 'No Rating', // Fallback for null value
+                                  style: AppStyle.heading5Medium(color: AppColor.primaryColor),
+                                ),
+                                SizedBox(width: AppSize.appSize6),
+                                Icon(
+                                  Icons.star,
+                                  color: Color(0xFFFFB84D),
+                                  size: AppSize.appSize18,
                                 ),
                               ],
                             ),
@@ -1508,17 +1006,15 @@ class _HomeViewState extends State<HomeView> {
                         ),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: List.generate(
-                              homeController.searchPropertyImageList.length,
-                              (index) {
-                            return Container(
+                          children: [
+                            // Display number of bedrooms
+                            Container(
                               padding: const EdgeInsets.symmetric(
                                 vertical: AppSize.appSize6,
                                 horizontal: AppSize.appSize16,
                               ),
                               decoration: BoxDecoration(
-                                borderRadius:
-                                    BorderRadius.circular(AppSize.appSize12),
+                                borderRadius: BorderRadius.circular(AppSize.appSize12),
                                 border: Border.all(
                                   color: AppColor.primaryColor,
                                   width: AppSize.appSizePoint50,
@@ -1526,23 +1022,77 @@ class _HomeViewState extends State<HomeView> {
                               ),
                               child: Row(
                                 children: [
-                                  Image.asset(
-                                    homeController
-                                        .searchPropertyImageList[index],
-                                    width: AppSize.appSize18,
-                                    height: AppSize.appSize18,
-                                  ).paddingOnly(right: AppSize.appSize6),
+                                  Icon(
+                                    Icons.bed,
+                                    color: Colors.blueGrey,
+                                    size: AppSize.appSize18,
+                                  ),
+                                  SizedBox(width: AppSize.appSize6),
                                   Text(
-                                    homeController
-                                        .searchPropertyTitleList[index],
-                                    style: AppStyle.heading5Medium(
-                                        color: AppColor.textColor),
+                                    '${property.totalBedroom} ',
+                                    style: AppStyle.heading5Medium(color: AppColor.textColor),
                                   ),
                                 ],
                               ),
-                            );
-                          }),
-                        ),
+                            ),
+                            // Display number of bathrooms
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: AppSize.appSize6,
+                                horizontal: AppSize.appSize16,
+                              ),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(AppSize.appSize12),
+                                border: Border.all(
+                                  color: AppColor.primaryColor,
+                                  width: AppSize.appSizePoint50,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.bathtub,
+                                    color: Colors.blueGrey,
+                                    size: AppSize.appSize18,
+                                  ),
+                                  SizedBox(width: AppSize.appSize6),
+                                  Text(
+                                    '${property.totalBathroom} ',
+                                    style: AppStyle.heading5Medium(color: AppColor.textColor),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // Display area
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: AppSize.appSize6,
+                                horizontal: AppSize.appSize16,
+                              ),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(AppSize.appSize12),
+                                border: Border.all(
+                                  color: AppColor.primaryColor,
+                                  width: AppSize.appSizePoint50,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.area_chart,
+                                    color: Colors.blueGrey,
+                                    size: AppSize.appSize18,
+                                  ),
+                                  SizedBox(width: AppSize.appSize6),
+                                  Text(
+                                    '${property.totalArea} sq/m',
+                                    style: AppStyle.heading5Medium(color: AppColor.textColor),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ).paddingOnly(top: AppSize.appSize6),
                       ],
                     ),
                   ),
@@ -1550,10 +1100,13 @@ class _HomeViewState extends State<HomeView> {
               },
             ),
           ).paddingOnly(top: AppSize.appSize16),
+
+
+
           Row(
             children: [
               Text(
-                AppString.popularBuilders,
+                "Agents ",
                 style: AppStyle.heading3SemiBold(color: AppColor.textColor),
               ),
               Text(
@@ -1574,12 +1127,14 @@ class _HomeViewState extends State<HomeView> {
               scrollDirection: Axis.horizontal,
               physics: const ClampingScrollPhysics(),
               padding: const EdgeInsets.only(left: AppSize.appSize16),
-              itemCount: homeController.popularBuilderImageList.length,
+              itemCount: homeController.agentsList.length,
               itemBuilder: (context, index) {
+                final agent = homeController.agentsList[index];
                 return GestureDetector(
                   onTap: () {
                     //if (index == AppSize.size0) {
-                    Get.toNamed(AppRoutes.popularBuildersView);
+                    Get.toNamed(AppRoutes.popularBuildersView,
+                      arguments: agent);
                     // }
                   },
                   child: Container(
@@ -1598,15 +1153,20 @@ class _HomeViewState extends State<HomeView> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Center(
-                          child: Image.asset(
-                            homeController.popularBuilderImageList[index],
-                            width: AppSize.appSize40,
-                            height: AppSize.appSize40,
+                          child: CircleAvatar(
+                            radius: AppSize.appSize20, // Adjust the radius for the desired size
+                            backgroundColor: AppColor.primaryColor, // Set the background color
+                            child: Icon(
+                              Icons.contacts_outlined, // Icon representing an agent
+                              size: AppSize.appSize24, // Adjust the icon size inside the CircleAvatar
+                              color: Colors.white, // Set the icon color
+                            ),
                           ),
                         ),
+
                         Center(
                           child: Text(
-                            homeController.popularBuilderTitleList[index],
+                              agent.name,
                             style: AppStyle.heading5Medium(
                                 color: AppColor.textColor),
                           ),
@@ -1625,29 +1185,32 @@ class _HomeViewState extends State<HomeView> {
                 AppString.upcomingProject,
                 style: AppStyle.heading3SemiBold(color: AppColor.textColor),
               ),
-              GestureDetector(
+             /* GestureDetector(
                 onTap: () {
                   print('touched');
-                  bottomBarController.pageController.jumpToPage(1);
-                  bottomBarController.updateIndex(1);
-                  // Navigator.push(
-                  //     context,
-                  //     MaterialPageRoute(
-                  //       builder: (context) => ActivityView(),
-                  //     ));
+
+
+                   Navigator.push(
+                      context,
+                       MaterialPageRoute(
+                        builder: (context) => ActivityView(),
+                      ));
                 },
                 child: Text(
                   AppString.viewAll,
                   style:
                       AppStyle.heading5Medium(color: AppColor.descriptionColor),
                 ),
-              ),
+              ),*/
             ],
           ).paddingOnly(
             top: AppSize.appSize26,
             left: AppSize.appSize16,
             right: AppSize.appSize16,
           ),
+
+
+
           SizedBox(
             height: AppSize.appSize200,
             child: ListView.builder(
@@ -1655,20 +1218,26 @@ class _HomeViewState extends State<HomeView> {
               physics: const ClampingScrollPhysics(),
               padding: const EdgeInsets.only(left: AppSize.appSize16),
               scrollDirection: Axis.horizontal,
-              itemCount: homeController.upcomingProjectImageList.length,
+              itemCount: homeController.serviceTypes.length,  // Using serviceTypes list here
               itemBuilder: (context, index) {
                 return GestureDetector(
-                  onTap: () {
-                    print('touched');
+                  onTap: () async {
+                    int serviceId = homeController.serviceTypes[index].id;  // Get the service ID
+
+                    print('Service ID: $serviceId');  // Debugging: Print service ID
+
+                    await homeController.fetchServiceList(serviceId);  // Call API with service ID
+
                     Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ServicesList(
-                            serviceName:
-                                homeController.upcomingProjectTitleList[index],
-                          ),
-                        ));
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ServicesList(
+                          serviceName: homeController.serviceTypes[index].name,
+                        ),
+                      ),
+                    );
                   },
+
                   child: Stack(
                     children: [
                       Container(
@@ -1676,13 +1245,11 @@ class _HomeViewState extends State<HomeView> {
                         margin: const EdgeInsets.only(right: AppSize.appSize16),
                         padding: const EdgeInsets.all(AppSize.appSize10),
                         decoration: BoxDecoration(
-                          color: AppColor.textColor,
-                          borderRadius:
-                              BorderRadius.circular(AppSize.appSize12),
+                          color: AppColor.secondaryColor  ,
+                          borderRadius: BorderRadius.circular(AppSize.appSize12),
                           image: DecorationImage(
                             fit: BoxFit.cover,
-                            image: AssetImage(
-                                homeController.upcomingProjectImageList[index]),
+                            image: NetworkImage(homeController.serviceTypes[index].image),  // Using service image here
                           ),
                         ),
                       ),
@@ -1690,100 +1257,41 @@ class _HomeViewState extends State<HomeView> {
                         width: AppSize.appSize300,
                         decoration: BoxDecoration(
                           color: Color.fromARGB(101, 0, 0, 0),
-                          borderRadius:
-                              BorderRadius.circular(AppSize.appSize12),
+                          borderRadius: BorderRadius.circular(AppSize.appSize12),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
                             Padding(
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: querySize.width * 0.025),
+                              padding: EdgeInsets.symmetric(horizontal: querySize.width * 0.025),
                               child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
-                                    homeController
-                                        .upcomingProjectTitleList[index],
-                                    style: AppStyle.heading3(
-                                        color: AppColor.whiteColor),
+                                    homeController.serviceTypes[index].name,  // Using service name here
+                                    style: AppStyle.heading3(color: AppColor.whiteColor),
                                   ),
                                   // Text(
-                                  //   homeController
-                                  //       .upcomingProjectPriceList[index],
-                                  //   style: AppStyle.heading5(
-                                  //       color: AppColor.whiteColor),
+                                  //   homeController.upcomingProjectPriceList[index],
+                                  //   style: AppStyle.heading5(color: AppColor.whiteColor),
                                   // ),
                                 ],
                               ),
                             ),
                             SizedBox(
                               height: querySize.height * 0.03,
-                            )
-                            // Text(
-                            //   homeController.upcomingProjectAddressList[index],
-                            //   style: AppStyle.heading5Regular(
-                            //       color: AppColor.whiteColor),
-                            // ).paddingOnly(top: AppSize.appSize6),
-                            // Text(
-                            //   homeController.upcomingProjectFlatSizeList[index],
-                            //   style:
-                            //       AppStyle.heading6Medium(color: AppColor.whiteColor),
-                            // ).paddingOnly(top: AppSize.appSize6),
+                            ),
                           ],
                         ),
-                      )
+                      ),
                     ],
                   ),
                 );
               },
             ),
           ).paddingOnly(top: AppSize.appSize16),
-          // Text(
-          //   AppString.explorePopularCity,
-          //   style: AppStyle.heading3SemiBold(color: AppColor.textColor),
-          // ).paddingOnly(
-          //   top: AppSize.appSize26,
-          //   left: AppSize.appSize16, right: AppSize.appSize16,
-          // ),
-          // SizedBox(
-          //   height: AppSize.appSize100,
-          //   child: ListView.builder(
-          //     shrinkWrap: true,
-          //     physics: const ClampingScrollPhysics(),
-          //     padding: const EdgeInsets.only(left: AppSize.appSize16),
-          //     scrollDirection: Axis.horizontal,
-          //     itemCount: homeController.popularCityImageList.length,
-          //     itemBuilder: (context, index) {
-          //       return GestureDetector(
-          //         onTap: () {
-          //           exploreCityBottomSheet(context);
-          //         },
-          //         child: Container(
-          //           width: AppSize.appSize100,
-          //           margin: const EdgeInsets.only(right: AppSize.appSize16),
-          //           padding: const EdgeInsets.only(bottom: AppSize.appSize10),
-          //           decoration: BoxDecoration(
-          //             color: AppColor.whiteColor,
-          //             borderRadius: BorderRadius.circular(AppSize.appSize16),
-          //             image: DecorationImage(
-          //               image: AssetImage(homeController.popularCityImageList[index]),
-          //             ),
-          //           ),
-          //           child: Align(
-          //             alignment: Alignment.bottomCenter,
-          //             child: Text(
-          //               homeController.popularCityTitleList[index],
-          //               style: AppStyle.heading5Medium(color: AppColor.whiteColor),
-          //             ),
-          //           ),
-          //         ),
-          //       );
-          //     },
-          //   ),
-          // ).paddingOnly(top: AppSize.appSize16),
+
         ],
       ).paddingOnly(top: AppSize.appSize50, bottom: AppSize.appSize20),
     );

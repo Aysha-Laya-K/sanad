@@ -55,6 +55,22 @@ class TermsOfUseView extends StatelessWidget {
             style: AppStyle.heading5Regular(color: AppColor.textColor),
           ),
         ),
+
+        Divider(
+          color: AppColor.descriptionColor.withOpacity(AppSize.appSizePoint4),
+          thickness: AppSize.appSizePoint7,
+          height: AppSize.appSize0,
+        ).paddingOnly(top: AppSize.appSize16, bottom: AppSize.appSize26),
+        GestureDetector(
+          onTap: () {
+            Get.toNamed(AppRoutes.termsconditionsView);
+          },
+          child: Text(
+            AppString.terms2,
+            style: AppStyle.heading5Regular(color: AppColor.textColor),
+          ),
+        ),
+
         Divider(
           color: AppColor.descriptionColor.withOpacity(AppSize.appSizePoint4),
           thickness: AppSize.appSizePoint7,
@@ -74,6 +90,7 @@ class TermsOfUseView extends StatelessWidget {
           thickness: AppSize.appSizePoint7,
           height: AppSize.appSize0,
         ).paddingOnly(top: AppSize.appSize16, bottom: AppSize.appSize26),
+
       ],
     ).paddingOnly(
       top: AppSize.appSize10,

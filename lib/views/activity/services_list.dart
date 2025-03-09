@@ -14,11 +14,20 @@ import 'package:luxury_real_estate_flutter_ui_kit/views/activity/widgets/listing
 import 'package:luxury_real_estate_flutter_ui_kit/views/activity/widgets/sort_by_listing_bottom_sheet.dart';
 
 import 'package:luxury_real_estate_flutter_ui_kit/views/home/widget/manage_property_bottom_sheet.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/controller/home_controller.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/controller/activity_controller.dart';
+
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:luxury_real_estate_flutter_ui_kit/routes/app_routes.dart';
+
+
 
 class ServicesList extends StatelessWidget {
   final String serviceName;
   ServicesList({required this.serviceName, super.key});
   ActivityController activityController = Get.put(ActivityController());
+  final HomeController controller = Get.find<HomeController>();
   @override
   Widget build(BuildContext context) {
     return Obx(() => SafeArea(
@@ -90,6 +99,12 @@ class ServicesList extends StatelessWidget {
               controller: activityController.searchListController,
               cursorColor: AppColor.primaryColor,
               style: AppStyle.heading4Regular(color: AppColor.textColor),
+              readOnly: true,
+              onTap: () {
+                Get.toNamed(AppRoutes.searchView);
+
+
+              },
               decoration: InputDecoration(
                 hintText: AppString.searchServices,
                 hintStyle:
@@ -190,134 +205,117 @@ class ServicesList extends StatelessWidget {
                   },
                 )
               : ListView.builder(
-                  shrinkWrap: true,
-                  padding: const EdgeInsets.only(top: AppSize.appSize26),
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: 3, //activityController.propertyListImage.length,
-                  itemBuilder: (context, index) {
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ServiceDetailScreen(),
-                            ));
-                      },
-                      child: Container(
-                        margin:
-                            const EdgeInsets.only(bottom: AppSize.appSize26),
-                        padding: const EdgeInsets.all(AppSize.appSize16),
-                        decoration: BoxDecoration(
-                          color: Color(0xFFFFF3F6), // AppColor.primaryColor,
-                          borderRadius:
-                              BorderRadius.circular(AppSize.appSize12),
-                        ),
-                        child: Row(
-                          children: [
-                            Image.asset(
-                              activityController.propertyListImage[index],
-                              width: AppSize.appSize90,
-                            ).paddingOnly(right: AppSize.appSize16),
-                            Expanded(
-                              child: SizedBox(
-                                height: AppSize.appSize110,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      'Service Provider Name',
-                                      // activityController
-                                      //     .propertyListTitle[index],
-                                      style: AppStyle.serviceName(
-                                          color: AppColor.primaryColor),
-                                    ),
-                                    // Text(
-                                    //   activityController
-                                    //       .propertyListRupee[index],
-                                    //   style: AppStyle.heading5Medium(
-                                    //       color: AppColor.textColor),
-                                    // ),
-                                    Text(
-                                      activityController
-                                          .propertyListAddress[index],
-                                      style: AppStyle.servicePlace(
-                                          color: AppColor.primaryColor),
-                                    ),
-                                    // GestureDetector(
-                                    //   onTap: () {
-                                    //     managePropertyBottomSheet(context);
-                                    //   },
-                                    //   child: Text(
-                                    //     AppString.manageProperty,
-                                    //     style: AppStyle.heading5Medium(
-                                    //         color: AppColor.primaryColor),
-                                    //   ),
-                                    // ),
-                                    SizedBox(
-                                      height:
-                                          MediaQuery.of(context).size.height *
-                                              0.01,
-                                    ),
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.start,
-                                      children: [
-                                        // WhatsApp Button
-                                        IconButton(
-                                            onPressed: () {
-                                              // Launch WhatsApp with a predefined message
-                                              // final whatsappUrl =
-                                              //     "whatsapp://send?phone=YOUR_PHONE_NUMBER&text=Hello";
-                                              // launchUrl(Uri.parse(whatsappUrl));
-                                            },
-                                            icon: Image.asset(
-                                              Assets.images.whatsapp.path,
-                                              width: AppSize.appSize20,
-                                              color: AppColor.primaryColor,
-                                              // color: Colors.green,
-                                            )),
+            shrinkWrap: true,
+            padding: const EdgeInsets.only(top: AppSize.appSize26),
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: controller.services.length,
+            itemBuilder: (context, index) {
+              return GestureDetector(
+                onTap: () async {
+                  await activityController.fetchServiceDetails(controller.services[index].id);
 
-                                        // Call Button
-                                        IconButton(
-                                          onPressed: () {
-                                            // Launch phone dialer
-                                            // final phoneUrl = "tel:YOUR_PHONE_NUMBER";
-                                            // launchUrl(Uri.parse(phoneUrl));
-                                          },
-                                          icon: const Icon(
-                                            Icons.phone,
-                                            color: AppColor.primaryColor,
-                                            // color: Colors.blue,
-                                            size: 21,
-                                          ),
-                                        ),
-
-                                        // SMS Button
-                                        // IconButton(
-                                        //   onPressed: () {
-                                        //     // Launch SMS
-                                        //     // final smsUrl = "sms:YOUR_PHONE_NUMBER";
-                                        //     // launchUrl(Uri.parse(smsUrl));
-                                        //   },
-                                        //   icon: const Icon(
-                                        //     Icons.sms,
-                                        //     color: Color(0xFFEFECE4),
-                                        //     size: 28,
-                                        //   ),
-                                        // ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                  if (activityController.serviceDetails != null) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ServiceDetailScreen(serviceDetails: activityController.serviceDetails!),
                       ),
                     );
-                  },
+                  } else {
+                    print("Failed to load service details.");
+                  }
+                },
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: AppSize.appSize26),
+                  padding: const EdgeInsets.all(AppSize.appSize16),
+                  decoration: BoxDecoration(
+                    color: Color(0xFFFFF3F6), // AppColor.primaryColor,
+                    borderRadius: BorderRadius.circular(AppSize.appSize12),
+                  ),
+                  child: Row(
+                    children: [
+                      // Image with a placeholder and increased size
+                      Image.network(
+                        controller.services[index].thumbImage,
+                        width: AppSize.appSize100, // Increase the width to make the image bigger
+                        height: AppSize.appSize100, // Optionally set height to maintain aspect ratio
+                        fit: BoxFit.cover,
+                        loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
+                          if (loadingProgress == null) {
+                            return child; // Image loaded
+                          } else {
+                            return Center(
+                              child: CircularProgressIndicator(
+                                value: loadingProgress.expectedTotalBytes != null
+                                    ? loadingProgress.cumulativeBytesLoaded /
+                                    (loadingProgress.expectedTotalBytes ?? 1)
+                                    : null,
+                              ),
+                            ); // Show loading indicator while image is loading
+                          }
+                        },
+                        errorBuilder: (context, error, stackTrace) {
+                          return Icon(Icons.error, color: AppColor.primaryColor); // Display error icon if image fails to load
+                        },
+                      ).paddingOnly(right: AppSize.appSize16),
+                      Expanded(
+                        child: SizedBox(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                controller.services[index].title,
+                                style: AppStyle.serviceName(color: AppColor.primaryColor),
+                              ),
+                              Text(
+                                "QAR ${controller.services[index].startingPrice}",
+                                style: AppStyle.servicePlace(color: AppColor.primaryColor),
+                              ),
+                              SizedBox(
+                                height: MediaQuery.of(context).size.height * 0.01,
+                              ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  IconButton(
+                                    onPressed: () {
+                                      String whatsapp = controller.services[index].vendorname.phone; // Get dynamically
+                                      activityController.openWhatsApp(whatsapp);
+
+
+                                      // Handle WhatsApp action
+                                    },
+                                    icon: Image.asset(
+                                      Assets.images.whatsapp.path,
+                                      width: AppSize.appSize20,
+                                      color: AppColor.primaryColor,
+                                    ),
+                                  ),
+                                  IconButton(
+                                    onPressed: () {
+                                      String agentPhoneNumber = controller.services[index].vendorname.phone; // Get dynamically
+                                      activityController.launchDialer(agentPhoneNumber);
+                                    },
+                                    icon: const Icon(
+                                      Icons.phone,
+                                      color: AppColor.primaryColor,
+                                      size: 21,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+              );
+            },
+          ),
+
         ],
       ).paddingOnly(
         top: AppSize.appSize10,

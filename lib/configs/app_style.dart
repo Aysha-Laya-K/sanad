@@ -39,6 +39,12 @@ class AppStyle {
       color: color,
     );
   }
+  static TextStyle headingSemiBold({required Color color}) {
+    return _baseStyle(AppSize.appSize186, FontWeight.w600, AppFont.interSemiBold)
+        .copyWith(
+      color: color,
+    );
+  }
 
   static TextStyle heading3Medium({required Color color}) {
     return _baseStyle(AppSize.appSize18, FontWeight.w500, AppFont.interMedium)

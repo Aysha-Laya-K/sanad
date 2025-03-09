@@ -87,53 +87,25 @@ class LoginView extends StatelessWidget {
                       : const SizedBox.shrink(),
                   Row(
                     children: [
-                      loginController.hasFocus.value ||
-                              loginController.hasInput.value
-                          ? SizedBox(
-                                  // width: AppSize.appSize78,
-                                  // child: IntrinsicHeight(
-                                  //   child: GestureDetector(
-                                  //     onTap: () {
-                                  //       loginCountryPickerBottomSheet(context);
-                                  //     },
-                                  //     child: Row(
-                                  //       children: [
-                                  //         Obx(() {
-                                  //           final selectedCountryIndex =
-                                  //               loginCountryPickerController
-                                  //                   .selectedIndex.value;
-                                  //           return Text(
-                                  //             loginCountryPickerController
-                                  //                             .countries[
-                                  //                         selectedCountryIndex]
-                                  //                     [AppString.codeText] ??
-                                  //                 '',
-                                  //             style: AppStyle.heading4Regular(
-                                  //                 color: AppColor.primaryColor),
-                                  //           );
-                                  //         }),
-                                  //         Image.asset(
-                                  //           Assets.images.dropdown.path,
-                                  //           width: AppSize.appSize16,
-                                  //         ).paddingOnly(
-                                  //             left: AppSize.appSize8,
-                                  //             right: AppSize.appSize3),
-                                  //         const VerticalDivider(
-                                  //           color: AppColor.primaryColor,
-                                  //         ),
-                                  //       ],
-                                  //     ),
-                                  //   ),
-                                  // ),
-                                  )
-                              .paddingOnly(
-                              left: loginController.hasInput.value
-                                  ? (loginController.hasFocus.value
-                                      ? AppSize.appSize16
-                                      : AppSize.appSize0)
-                                  : AppSize.appSize16,
-                            )
-                          : const SizedBox.shrink(),
+                      Padding(
+                        padding: EdgeInsets.only(
+                          left: loginController.hasInput.value
+                              ? (loginController.hasFocus.value
+                              ? AppSize.appSize16
+                              : AppSize.appSize0)
+                              : AppSize.appSize16,
+                        ),
+                        child: Text(
+                          '+974', // Static country code
+                          style: AppStyle.heading4Regular(
+                              color: AppColor.descriptionColor),
+                        ),
+                      ),
+                      SizedBox(width: AppSize.appSize8),
+
+
+
+
                       Expanded(
                         child: SizedBox(
                           height: AppSize.appSize27,
@@ -186,7 +158,11 @@ class LoginView extends StatelessWidget {
         CommonButton(
           onPressed: () async {
             await UserTypeManager.setUserType('user');
-            Get.toNamed(AppRoutes.otpView);
+            String mobileNumber = loginController.mobileController.text;
+            Get.toNamed(AppRoutes.otpView, arguments: mobileNumber);
+
+
+            loginController.sendMobileNumber();
           },
           child: Text(
             AppString.continueButton,

@@ -23,26 +23,49 @@ class _PropertyMapScreenState extends State<PropertyMapScreen> {
   HomeController homeController = Get.put(HomeController());
   late GoogleMapController _mapController;
   Set<Marker> _markers = {};
-  late List<Property> properties;
 
   @override
   void initState() {
     super.initState();
-    properties = generateRandomProperties();
-    _createCustomMarkers();
+    homeController.mapDataResponse.value?.data;
+    homeController.fetchMapData().then((_) {
+      _createCustomMarkers();
+      _printLatLon();
+    });
+  }
+
+  Future<void> _printLatLon() async {
+    final mapData = homeController.mapDataResponse.value?.data;
+
+    if (mapData != null) {
+      for (var data in mapData) {
+        print('Latitude: ${data.lat}, Longitude: ${data.lon}');
+      }
+    } else {
+      print('No data available or map data is null');
+    }
   }
 
   Future<BitmapDescriptor> _createCustomMarkerBitmap(String price) async {
+    final pictureRecorder = ui.PictureRecorder();
+    final Canvas canvas = Canvas(pictureRecorder);
+
+    // Define custom dimensions
+    double textSize = 35;
+    double padding = 20;
+    double triangleHeight = 10;
+
+    // Create text span
     TextSpan span = TextSpan(
       style: TextStyle(
         color: Colors.white,
-        fontSize: 35,
+        fontSize: textSize,
         fontWeight: FontWeight.bold,
-        backgroundColor: Colors.blue,
       ),
       text: price,
     );
 
+    // Prepare text painter
     TextPainter painter = TextPainter(
       text: span,
       textAlign: TextAlign.center,
@@ -50,72 +73,79 @@ class _PropertyMapScreenState extends State<PropertyMapScreen> {
     );
     painter.layout();
 
-    final double width = painter.width + 30;
-    final double height = painter.height + 20;
+    // Define marker dimensions
+    final double width = painter.width + padding * 2;
+    final double height = painter.height + padding * 2 + triangleHeight;
 
-    final pictureRecorder = ui.PictureRecorder();
-    final Canvas canvas = Canvas(pictureRecorder);
+    // Adjust canvas
+    canvas.translate(0, height);
+    canvas.scale(1, -1); // Flip vertically to fix upside-down issue
 
-    // Draw background bubble
-    final paint = Paint()
-      ..color = Color(0xFF00ACB3) // Your app's primary color
-      ..style = PaintingStyle.fill;
-
+    // Draw background shape (bubble)
+    final paint = Paint()..color = Color(0xFF00ACB3);
     final path = Path();
     path.addRRect(RRect.fromRectAndRadius(
-      Rect.fromLTWH(0, 0, width, height),
-      Radius.circular(height / 2),
+      Rect.fromLTWH(0, 0, width, height - triangleHeight),
+      Radius.circular(20),
     ));
 
-    // Add triangle at bottom for pointer
-    path.moveTo(width / 2 - 10, height);
-    path.lineTo(width / 2, height + 10);
-    path.lineTo(width / 2 + 10, height);
+    // Add triangle at bottom (pointer)
+    path.moveTo(width / 2 - 10, height - triangleHeight);
+    path.lineTo(width / 2, height);
+    path.lineTo(width / 2 + 10, height - triangleHeight);
     path.close();
 
     canvas.drawPath(path, paint);
 
     // Draw text
-    painter.paint(
-      canvas,
-      Offset((width - painter.width) / 2, (height - painter.height) / 2),
-    );
+    painter.paint(canvas, Offset((width - painter.width) / 2, padding / 2));
 
+    // Convert to image
     final img = await pictureRecorder.endRecording().toImage(
-          width.toInt(),
-          (height + 10).toInt(),
-        );
+      width.toInt(),
+      height.toInt(),
+    );
     final data = await img.toByteData(format: ui.ImageByteFormat.png);
 
     return BitmapDescriptor.fromBytes(data!.buffer.asUint8List());
   }
 
   Future<void> _createCustomMarkers() async {
-    _markers = {};
-    for (var property in properties) {
-      final customMarker = await _createCustomMarkerBitmap(
-          'QAR ${(property.price / 1000).round()}K');
+    _markers = {}; // Reset the markers
+    final mapData = homeController.mapDataResponse.value?.data;
 
-      _markers.add(
-        Marker(
-          markerId: MarkerId(property.id),
-          position: property.location,
-          icon: customMarker,
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => PropertyDetailsView(),
-              ),
-            );
-          },
-        ),
-      );
+    if (mapData != null) {
+      for (var data in mapData) {
+        if (data.lat != null && data.lon != null) {
+          final customMarker = await _createCustomMarkerBitmap('QAR ${data.price}');
+
+          _markers.add(
+            Marker(
+              markerId: MarkerId(data.id.toString()),
+              position: LatLng(double.parse(data.lat!), double.parse(data.lon!)),
+              icon: customMarker,
+              onTap: () {
+
+                final int propertyId = data.id;
+                print('Tapped on property with ID: $propertyId');
+                // await propertyController.fetchPropertyDetails(propertyId); // Fetch details
+                //Get.toNamed(AppRoutes.propertyDetailsView, arguments: propertyController.propertyDetails.value);
+                Get.toNamed(AppRoutes.propertyDetailsView, arguments: propertyId);
+                // Navigate to property details if needed
+              },
+            ),
+          );
+          print('Added marker at Lat: ${data.lat}, Lon: ${data.lon}');
+        }
+      }
+      print('Total markers: ${_markers.length}'); // Debugging markers count
     }
+
     if (mounted) {
-      setState(() {});
+      setState(() {}); // Refresh the UI
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -183,76 +213,25 @@ class _PropertyMapScreenState extends State<PropertyMapScreen> {
               left: AppSize.appSize16,
               right: AppSize.appSize16,
             ),
-            SingleChildScrollView(
-              physics: const ClampingScrollPhysics(),
-              padding: const EdgeInsets.only(
-                left: AppSize.appSize16,
-                right: AppSize.appSize16,
-              ),
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: List.generate(homeController.countryOptionList.length,
-                    (index) {
-                  return GestureDetector(
-                    onTap: () {
-                      homeController.updateCountry(index);
-                      if (index == AppSize.size2) {
-                        // _scrollToBottom();
-                      }
-                      if (index == AppSize.size3) {
-                        Get.toNamed(AppRoutes.searchView);
-                      }
-                    },
-                    child: Obx(() => Container(
-                          height: AppSize.appSize25,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: AppSize.appSize14),
-                          decoration: BoxDecoration(
-                            border: Border(
-                              bottom: BorderSide(
-                                color:
-                                    homeController.selectCountry.value == index
-                                        ? AppColor.primaryColor
-                                        : AppColor.borderColor,
-                                width: AppSize.appSize1,
-                              ),
-                              right: BorderSide(
-                                color: index == AppSize.size3
-                                    ? Colors.transparent
-                                    : AppColor.borderColor,
-                                width: AppSize.appSize1,
-                              ),
-                            ),
-                          ),
-                          child: Center(
-                            child: Text(
-                              homeController.countryOptionList[index],
-                              style: AppStyle.heading5Medium(
-                                color:
-                                    homeController.selectCountry.value == index
-                                        ? AppColor.primaryColor
-                                        : AppColor.textColor,
-                              ),
-                            ),
-                          ),
-                        )),
-                  );
-                }),
-              ).paddingOnly(top: AppSize.appSize36),
-            ),
             Expanded(
-              child: GoogleMap(
-                initialCameraPosition: CameraPosition(
-                  target: LatLng(25.2854, 51.5310), // Qatar center
-                  zoom: 11,
-                ),
-                onMapCreated: (controller) {
-                  _mapController = controller;
-                },
-                markers: _markers,
-                myLocationEnabled: true,
-                myLocationButtonEnabled: true,
-              ),
+              child: Obx(() {
+                if (homeController.mapDataResponse.value == null) {
+                  return Center(child: CircularProgressIndicator());
+                } else {
+                  return GoogleMap(
+                    initialCameraPosition: CameraPosition(
+                      target: LatLng(25.2854, 51.5310), // Qatar center
+                      zoom: 11,
+                    ),
+                    onMapCreated: (controller) {
+                      _mapController = controller;
+                    },
+                    markers: _markers,
+                    myLocationEnabled: true,
+                    myLocationButtonEnabled: true,
+                  );
+                }
+              }),
             ),
           ],
         ),
@@ -260,56 +239,3 @@ class _PropertyMapScreenState extends State<PropertyMapScreen> {
     );
   }
 }
-// class _PropertyMapScreenState extends State<PropertyMapScreen> {---------------------------------------------
-//   late GoogleMapController _mapController;
-//   Set<Marker> _markers = {};
-//   late List<Property> properties;
-
-//   @override
-//   void initState() {
-//     super.initState();
-//     properties = generateRandomProperties();
-//     _createMarkers();
-//   }
-
-//   void _createMarkers() {
-//     _markers = properties.map((property) {
-//       return Marker(
-//         markerId: MarkerId(property.id),
-//         position: property.location,
-//         infoWindow: InfoWindow(
-//           title: 'QAR ${property.price.toStringAsFixed(0)}',
-//         ),
-//         onTap: () {
-//           Navigator.push(
-//             context,
-//             MaterialPageRoute(
-//               builder: (context) => PropertyDetailsView(),
-//             ),
-//           );
-//         },
-//       );
-//     }).toSet();
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: Text('Property Map'),
-//       ),
-//       body: GoogleMap(
-//         initialCameraPosition: CameraPosition(
-//           target: LatLng(25.2854, 51.5310), // Qatar center
-//           zoom: 11,
-//         ),
-//         onMapCreated: (controller) {
-//           _mapController = controller;
-//         },
-//         markers: _markers,
-//         myLocationEnabled: true,
-//         myLocationButtonEnabled: true,
-//       ),
-//     );
-//   }
-// }

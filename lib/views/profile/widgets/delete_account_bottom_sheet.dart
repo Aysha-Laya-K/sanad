@@ -7,6 +7,12 @@ import 'package:luxury_real_estate_flutter_ui_kit/configs/app_string.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/configs/app_style.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/gen/assets.gen.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/routes/app_routes.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:luxury_real_estate_flutter_ui_kit/configs/share_pref.dart';
+
+
+
 deleteAccountBottomSheet(BuildContext context) {
   return showModalBottomSheet(
     backgroundColor: Colors.transparent,
@@ -71,7 +77,8 @@ deleteAccountBottomSheet(BuildContext context) {
             ),
             CommonButton(
               onPressed: () {
-                Get.offAllNamed(AppRoutes.registerView);
+                _deleteUser(context);
+
               },
               backgroundColor: AppColor.primaryColor,
               child: Text(
@@ -110,4 +117,42 @@ customRow(String text) {
       ),
     ],
   ).paddingOnly(top: AppSize.appSize16);
+}
+
+
+
+_deleteUser(BuildContext context) async {
+  String? token = await UserTypeManager.getToken();
+  if (token != null) {
+    try {
+      final response = await http.post(
+        Uri.parse('https://project.artisans.qa/realestate/api/delete-account'),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        // Successfully logged out
+        print('deleted successful: ${response.body}');
+        // Clear the token
+        await UserTypeManager.removeToken();
+
+        // Optionally verify the token is cleared
+        String? clearedToken = await UserTypeManager.getToken();
+        print('Cleared Token: $clearedToken');
+        Get.snackbar("Success", "Account Deleted Successfully");
+        // Navigate to login screen
+        Get.offAllNamed(AppRoutes.registerView);
+      } else {
+        // If the API call fails
+        print('failed: ${response.body}');
+      }
+    } catch (e) {
+      // Handle error
+      print('Error during account deletion: $e');
+    }
+  } else {
+    print('Token is null');
+  }
 }

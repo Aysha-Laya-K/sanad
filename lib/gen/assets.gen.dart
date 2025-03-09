@@ -1161,6 +1161,7 @@ class $AssetsImagesGen {
 
   /// File path: assets/images/city6.png
   AssetGenImage get city6 => const AssetGenImage('assets/images/city6.png');
+  AssetGenImage get needs=> const AssetGenImage('assets/images/needs.png');
 
   /// File path: assets/images/city7.png
   AssetGenImage get city7 => const AssetGenImage('assets/images/city7.png');
@@ -1225,6 +1226,7 @@ class $AssetsImagesGen {
 
   /// File path: assets/images/fan.png
   AssetGenImage get fan => const AssetGenImage('assets/images/fan.png');
+  AssetGenImage get delete => const AssetGenImage('assets/images/deleted.jpg');
 
   /// File path: assets/images/filter.png
   AssetGenImage get filter => const AssetGenImage('assets/images/filter.png');

@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/configs/app_string.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/gen/assets.gen.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/model/propertydetails_model.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:luxury_real_estate_flutter_ui_kit/model/propertydetails_model.dart';
 
 class PropertyDetailsController extends GetxController {
   RxBool isExpanded = false.obs;
@@ -22,16 +27,21 @@ class PropertyDetailsController extends GetxController {
   TextEditingController fullNameController = TextEditingController();
   TextEditingController mobileNumberController = TextEditingController();
   TextEditingController emailController = TextEditingController();
+  Rx<ApiResponse?> propertyDetails = Rx<ApiResponse?>(null);
 
   RxList<bool> isSimilarPropertyLiked = <bool>[].obs;
 
   ScrollController scrollController = ScrollController();
   RxDouble selectedOffset = 0.0.obs;
   RxBool showBottomProperty = false.obs;
+  var isLoading = true.obs;
+
 
   @override
   void onInit() {
     super.onInit();
+
+
     // scrollController.addListener(() {
     //   if(scrollController.offset == 700) {
     //     selectedOffset.value =  scrollController.offset;
@@ -56,6 +66,63 @@ class PropertyDetailsController extends GetxController {
       hasEmailInput.value = emailController.text.isNotEmpty;
     });
   }
+
+
+  Future<void> fetchPropertyDetails(int propertyId) async {
+    print('Fetching details for property ID: $propertyId');
+
+    final String url = 'https://project.artisans.qa/realestate/api/property/$propertyId';
+
+    try {
+      isLoading.value = true;
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = jsonDecode(response.body);
+        propertyDetails.value = ApiResponse.fromJson(data);
+        print('Property details loaded: ${propertyDetails.value?.property?.title}');
+      } else {
+        print('Error: API returned status code ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Error occurred while fetching property details: $error');
+    }
+
+    finally {
+      isLoading.value = false; // End loading
+    }
+  }
+
+
+  void launchDialer(String phoneNumber) async {
+    final Uri phoneUri = Uri(scheme: 'tel', path: '+974$phoneNumber');
+    if (await canLaunchUrl(phoneUri)) {
+      await launchUrl(phoneUri);
+    } else {
+      throw 'Could not launch $phoneUri';
+    }
+  }
+
+  Future<void> openWhatsApp(String whatsapp) async {
+    final whatsappUrl = Uri.parse('https://wa.me/+974$whatsapp'); // Convert the string to Uri
+      await launchUrl(whatsappUrl);  // Launch the URL
+
+  }
+
+
+  Future<void> openGmail(String agentEmail) async {
+    final emailUri = Uri(
+      scheme: 'mailto',
+      path: agentEmail,
+      // query:
+      //     'subject=Your Subject&body=Hello, this is the email body', // Optional query parameters
+    );
+
+    await launchUrl(emailUri);
+  }
+
+
+
 
   void toggleVisitExpansion() {
     isVisitExpanded.value = !isVisitExpanded.value;

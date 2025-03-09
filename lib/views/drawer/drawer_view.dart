@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+/*import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/common/common_rich_text.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/configs/app_color.dart';
@@ -352,4 +352,4 @@ class DrawerView extends StatelessWidget {
       ).paddingOnly(top: AppSize.appSize60),
     );
   }
-}
+}*/

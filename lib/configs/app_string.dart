@@ -14,6 +14,7 @@ class AppString {
       "Experience luxury in our top-rated accommodations";
 
   static const String login = "Login";
+  static const String myneeds = "My Requirements";
   static const String loginString = "Please enter your phone number";
   static const String phoneNumber = "Phone number";
   static const String countryCode = "+974";
@@ -23,8 +24,10 @@ class AppString {
   static const String verifyYourMobileNumber = "Verify your mobile number ";
   static const String contactNumber = "+974 98989 898";
   static const String didNotReceiveTheCode = "Didn’t receive the code? ";
+  static const String area = "Area ";
 
   static const String searchCountry = "Search Country";
+  static const String seeall= "See all Properties";
 
   static const String register = "Register";
   static const String registerString = "Please enter your details";
@@ -109,6 +112,8 @@ class AppString {
   static const String sobhaDevelopers = "ABCd Services";
   static const String kalpataru = "Abcd";
   static const String godrej = "Godrej";
+  static const String login1 = "Login";
+  static const String req = "Requirements";
   static const String unitech = "Unitech";
   static const String casagrand = "Casagrand";
   static const String brigade = "Brigade";
@@ -123,7 +128,9 @@ class AppString {
   static const String bhk4Apartment = "4 / 6 BHK Apartment";
   static const String bhk5Apartment = "5 BHK Apartment";
   static const String lakh45 = "QAR";
+  static const String save1 = "Saved Properties";
   static const String lakh85 = "QAR";
+  static const String needs = "Customer Needs";
   static const String explorePopularCity = "Explore Popular city";
   static const String mumbai = "Mumbai";
   static const String newDelhi = "New Delhi";
@@ -923,6 +930,7 @@ class AppString {
   static const String swedenCode = "+46";
   static const String switzerland = "Buy";
   static const String switzerlandCode = "+41";
+  static const String address0 = "Address";
   static const String thailand = "Thailand";
   static const String thailandCode = "+66";
   static const String turkey = "Turkey";
@@ -937,4 +945,7 @@ class AppString {
   static const String vietnamCode = "+84";
   static const String zimbabwe = "Zimbabwe";
   static const String zimbabweCode = "+263";
+  static const String type = "Type your message here.....";
+  static const String newprop = "New Properties";
+
 }

@@ -2,20 +2,421 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/configs/app_string.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/gen/assets.gen.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:luxury_real_estate_flutter_ui_kit/model/propertytype_model.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/model/servicetype_model.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/model/featuredproperty_model.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/model/typemodel.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/model/serviceresponse_model.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/routes/app_routes.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/model/agent_model.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/model/newproperty_model.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/model/map_model.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/model/profile_model.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/configs/share_pref.dart';
+
 
 class HomeController extends GetxController {
   TextEditingController searchController = TextEditingController();
   RxInt selectProperty = 0.obs;
   RxInt selectCountry = 0.obs;
   RxList<bool> isTrendPropertyLiked = <bool>[].obs;
+  RxList<PropertyType> propertyTypes = <PropertyType>[].obs;
+  RxList<ServiceType> serviceTypes = <ServiceType>[].obs;
+  RxList<Property> featuredProperties = <Property>[].obs;
+  RxList<NewProperty> newProperties = <NewProperty>[].obs;
+  RxList<Property> types = <Property>[].obs;
+  RxBool isLoading = false.obs;
+  RxList<Service> services = <Service>[].obs;
+  RxList<int> serviceIds = <int>[].obs;
+  String purpose = 'rent';
+  RxList<AgentData> agentsList = <AgentData>[].obs;
+  RxList<bool> isSavedList = <bool>[].obs;
+  //RxBool isLoading = false.obs;  // To show loading state if required
+ // RxString apiResponse = ''.obs;
+  var mapDataResponse = Rx<MapDataResponse?>(null);
+  RxMap<int, bool> isSavedMap = RxMap<int, bool>();
+  Rx<UserProfile?> userProfile = Rx<UserProfile?>(null); // Use nullable UserProfile
+
+// Store service IDs separately
+  @override
+
+  void onInit() {
+    super.onInit();
+    fetchPropertyTypes();
+    fetchServiceTypes();
+    fetchFeaturedProperty(purpose);
+    fetchAgents();
+    fetchNewProperty();
+    checkTokenAndFetchProfile();
+    print("Current purpose: $purpose");// Fetch property types when the controller initializes
+  }
+
+
+
+  // Function to check token and fetch profile data if token exists
+  Future<void> checkTokenAndFetchProfile() async {
+    final token = await UserTypeManager.getToken();
+    if (token != null) {
+      // If token exists, fetch the profile from the API
+      await _fetchProfileData(token);
+    } else {
+      // If token is null, remain with the default greeting
+      userProfile.value = null;
+    }
+  }
+
+  // API call to fetch user profile
+  Future<void> _fetchProfileData(String token) async {
+    try {
+      isLoading.value = true;
+      final response = await http.get(
+        Uri.parse('https://project.artisans.qa/realestate/api/user/my-profile'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        // Parse the JSON response and update userProfile
+        final profileData = UserProfile.fromJson(jsonDecode(response.body)['user']);
+        userProfile.value = profileData;
+      } else {
+        // Handle API error
+        Get.snackbar('Error', 'Failed to fetch profile data');
+      }
+    } catch (e) {
+      // Handle other errors (network issues, etc.)
+      Get.snackbar('Error', 'Something went wrong');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+
+
+  Future<void> fetchMapData() async {
+    final String url = "https://project.artisans.qa/realestate/api/map-data";
+
+    try {
+      // Set loading state to tru
+
+      // Make the API call
+      final response = await http.get(Uri.parse(url));
+      print('API Response: ${response.body}');
+
+      if (response.statusCode == 200) {
+
+        // If the server returns a 200 OK response
+
+        // Store the parsed data in an observable
+        final data = json.decode(response.body);
+        final mapDataResponseObj = MapDataResponse.fromJson(data);
+
+        // Update the observable with the response data
+        mapDataResponse.value = mapDataResponseObj;
+
+        print('API Response: ${response.body}');
+        // Print response for debugging
+      } else {
+        // If the server returns an error response
+        print('Error: ${response.statusCode}');
+      }
+    } catch (e) {
+      // Catch any errors in the API call
+      print('Error occurred: $e');
+    } finally {
+      // Set loading state to false
+    }
+  }
+
+
+  Future<void> fetchPropertyTypes({int limit = 10, int offset = 0}) async {
+    try {
+      final response = await http.get(
+        Uri.parse("https://project.artisans.qa/realestate/api/property-types?limit=10&offset=0"),
+      );
+
+      if (response.statusCode == 200) {
+        print("success1");
+        final data = json.decode(response.body);
+        final propertyTypeResponse = PropertyTypeResponse.fromJson(data);
+        propertyTypes.assignAll(propertyTypeResponse.propertyTypes);
+      } else {
+        print("failed1");
+        Get.snackbar("Error", "Failed to load property types");
+      }
+    } catch (e) {
+      Get.snackbar("Error", "An error occurred: $e");
+    }
+  }
+
+  Future<void> fetchServiceTypes({int limit = 10, int offset = 0}) async {
+    try {
+      final response = await http.get(
+        Uri.parse("https://project.artisans.qa/realestate/api/service-masters?limit=10&offset=0"),
+      );
+
+      if (response.statusCode == 200) {
+        print("success2");
+        final data = json.decode(response.body);
+        final serviceTypeResponse = ServiceTypeResponse.fromJson(data);
+        serviceTypes.assignAll(serviceTypeResponse.services); // Updated this line
+      } else {
+        print("failed2");
+        Get.snackbar("Error", "Failed to load service types");
+      }
+    } catch (e) {
+      Get.snackbar("Error", "An error occurred: $e");
+    }
+  }
+
+
+  Future<void> fetchServiceList(int serviceId) async {
+    try {
+      final response = await http.get(
+        Uri.parse("https://project.artisans.qa/realestate/api/service-list?servive_master_id=$serviceId"),
+      );
+
+      if (response.statusCode == 200) {
+        print("API Call Success");
+        print("Response: ${response.body}");
+
+        // Parse API response
+        ServiceListModel serviceList = ServiceListModel.fromJson(response.body);
+        services.value = serviceList.services;
+
+        // Clear previous ids and populate with new ones
+        serviceIds.clear();
+        for (var service in serviceList.services) {
+          serviceIds.add(service.id); // Store the service ID separately
+          print("Service Title: ${service.title}");
+          print("Starting Price: ${service.startingPrice}");
+        }
+      } else {
+        print("API Call Failed");
+        Get.snackbar("Error", "Failed to load services");
+      }
+    } catch (e) {
+      Get.snackbar("Error", "An error occurred: $e");
+    }
+  }
+
+
+  Future<void> fetchFeaturedProperty(String purpose) async {
+    try {
+      isLoading.value = true;
+      // Using the dynamic limit and offset values in the API URL
+      final response = await http.get(
+        Uri.parse("https://project.artisans.qa/realestate/api/featured-properties?purpose=$purpose"),
+      );
+
+      if (response.statusCode == 200) {
+        print("success26");
+        print("API Response: ${response.body}");
+        final data = json.decode(response.body);
+
+
+        // Assuming PropertyListResponse has a 'fromJson' method
+        final featuredPropertyResponse = PropertyListResponse.fromJson(data);
+
+        // Assigning the 'data' list to 'featuredProperties'
+        featuredProperties.assignAll(featuredPropertyResponse.data);
+        isSavedList.assignAll(List.generate(featuredProperties.length, (index) => false));
+        // Updated this line
+      } else {
+        print("failed2");
+        Get.snackbar("Error", "Failed to load featured properties");
+      }
+    } catch (e) {
+      Get.snackbar("Error", "An error occurred: $e");
+    }
+    finally{
+      isLoading.value = false;
+    }
+  }
+
+
+
+  Future<void> fetchNewProperty() async {
+    try {
+      isLoading.value = true;
+      // Using the dynamic limit and offset values in the API URL
+      final response = await http.get(
+        Uri.parse("https://project.artisans.qa/realestate/api/new-properties"),
+      );
+
+      if (response.statusCode == 200) {
+        print("test");
+        print("API Response: ${response.body}");
+        final data = json.decode(response.body);
+        final newPropertyResponse = NewPropertyResponse.fromJson(data);
+        newProperties.assignAll(newPropertyResponse.data);
+        isSavedList.assignAll(List.generate(newProperties.length, (index) => false));
+
+
+
+        //final data = json.decode(response.body);
+       /* final Map<String, dynamic> data = json.decode(response.body);
+
+        // Parse the data into the model
+        NewPropertyResponse propertyResponse = NewPropertyResponse.fromJson(data);*/
+
+        // Now you can access the property response data
+
+        // Loop through each property and print the title
+        for (var property in newPropertyResponse.data) {
+          print("Property Title: ${property.title}");
+        }
+
+
+        // Assuming PropertyListResponse has a 'fromJson' method
+        // Updated this line
+      } else {
+        print("failed2");
+        Get.snackbar("Error", "Failed to load featured properties");
+      }
+    } catch (e) {
+      Get.snackbar("Error", "An error occurred: $e");
+    }
+    finally{
+      isLoading.value = false;
+    }
+  }
+
+
+
+  Future<TypeResponse?> fetchTypeProperties({
+    required String id,
+
+  }) async {
+
+
+    const String apiUrl = "https://project.artisans.qa/realestate/api/properties";
+
+    // Encode the bedroomList as a JSON-like string
+
+
+    // Prepare query parameters
+    final queryParams = {
+      'type': id,
+       // Pass the JSON string instead of a comma-separated value
+    };
+
+    // Build URI with query parameters
+    final uri = Uri.parse(apiUrl).replace(queryParameters: queryParams);
+
+    // Print the final URL for debugging
+    print("Final URL: ${uri.toString()}");
+
+    try {
+      // Send GET request
+      final response = await http.get(uri);
+
+      if (response.statusCode == 200) {
+        // Parse the JSON response
+        final data = json.decode(response.body);
+        print("API Response: $data");
+
+        // Parse into TypeResponse model
+        TypeResponse typeResponse = TypeResponse.fromJson(data);
+        print("--------------${typeResponse.data.length}"); // Access the data property correctly
+
+        return typeResponse;  // Return the parsed response
+
+      } else {
+        print("Failed to load properties. Status code: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("Error while fetching properties: $e");
+    }
+
+    return null; // In case of failure, return null
+  }
+
+  Future<void> fetchPropertyDetails(int propertyId) async {
+    print('Fetching details for property ID: $propertyId');  // Debugging print
+
+    // Construct the URL by embedding the propertyId directly into the endpoint
+    final String url = 'https://project.artisans.qa/realestate/api/property/$propertyId';
+
+    try {
+      // Make the GET request
+      final response = await http.get(Uri.parse(url));
+
+      // Check if the request was successful
+      if (response.statusCode == 200) {
+        print('API Response: ${response.body}');
+
+        // Parse the response if it's in JSON format
+        final Map<String, dynamic> data = jsonDecode(response.body);
+        print('Decoded API Data: $data');
+
+        // Process the data here (e.g., update state, pass it to the UI, etc.)
+      } else {
+        // Handle non-successful status codes (e.g., 404, 500)
+        print('Error: API returned status code ${response.statusCode}');
+      }
+    } catch (error) {
+      // Handle errors (e.g., network errors, timeout, etc.)
+      print('Error occurred while fetching property details: $error');
+    }
+  }
+
+
+
+  Future<void> fetchAgents() async {
+    const String url = 'https://project.artisans.qa/realestate/api/agents';
+
+    print('Fetching agents data...');
+
+    try {
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        print('API Response: ${response.body}');
+
+        // Parse JSON response
+        final Map<String, dynamic> data = jsonDecode(response.body);
+        print('Decoded API Data: $data');
+
+        // Convert to model class
+        final agentsResponse = AgentsResponse.fromJson(data);
+
+        // Update agentsList with the agent data
+        agentsList.value = agentsResponse.agents.data;
+
+        // Debugging: Print agent names
+        for (var agent in agentsResponse.agents.data) {
+          print('Agent Name: ${agent.name}');
+        }
+
+        // You can now use agentsResponse in your UI or state management
+      } else {
+        print('Error: API returned status code ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Error occurred while fetching agents: $error');
+    }
+  }
+
+
 
   void updateProperty(int index) {
     selectProperty.value = index;
   }
 
+  /*void updateCountry(int index) {
+    selectCountry.value = index;
+  }*/
+
   void updateCountry(int index) {
     selectCountry.value = index;
+    // Dynamically set the purpose based on the index
+    purpose = (index == 0) ? 'rent' : 'buy';
+    print("Current purpose: $purpose");// Index 0 is for rent, index 1 is for buy
+    fetchFeaturedProperty(purpose); // Fetch the featured properties with the updated purpose
   }
+
 
   RxList<String> propertyOptionList = [
     AppString.buy,
@@ -162,6 +563,7 @@ class HomeController extends GetxController {
     AppString.point1,
     AppString.sq456,
   ].obs;
+
 
   RxList<String> popularBuilderImageList = [
     Assets.images.builder1.path,

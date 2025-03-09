@@ -6,9 +6,27 @@ import 'package:luxury_real_estate_flutter_ui_kit/gen/assets.gen.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/views/activity/widgets/custom_app_bar.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/model/servicedetails_model.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/controller/activity_controller.dart';
+import 'package:get/get.dart';
+import 'package:html/parser.dart' as html;
+import 'package:html_unescape/html_unescape.dart';
+import 'package:html/parser.dart';
+import 'package:flutter_html/flutter_html.dart';
+import 'package:flutter_html/flutter_html.dart';
+
+
 
 class ServiceDetailScreen extends StatefulWidget {
-  const ServiceDetailScreen({super.key});
+   // Declare the serviceDetails as required
+  final ServiceDetails serviceDetails;
+  //final ActivityController activityController = Get.put(ActivityController()); // Add this line before using the controller// Accept service details
+
+  const ServiceDetailScreen({Key? key, required this.serviceDetails}) : super(key: key);
+
+
+
+
 
   @override
   State<ServiceDetailScreen> createState() => _ServiceDetailScreenState();
@@ -18,11 +36,37 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   int detailActiveIndex = 0;
+  late ActivityController activityController;
+
+  String cleanDescription(String htmlString) {
+    // Decode HTML entities multiple times
+    HtmlUnescape unescape = HtmlUnescape();
+    String decodedString = unescape.convert(htmlString);
+    decodedString = unescape.convert(decodedString); // Double decoding
+
+    // Parse the decoded HTML string and extract text content
+    final document = html.parse(decodedString);
+    String parsedString = document.body?.text ?? '';
+
+    // Ensure no HTML tags remain
+    parsedString = parsedString.replaceAll(RegExp(r'<[^>]*>'), '');
+
+    // Remove extra spaces, new lines, and trim
+    parsedString = parsedString.replaceAll(RegExp(r'\s+'), ' ').trim();
+
+    return parsedString;
+  }
+
+
+
+
+
   @override
   void initState() {
     // print('---------------------------------${widget.productId}');
     // Initialize TabController in initState and use vsync: this
     _tabController = TabController(length: 2, vsync: this);
+    activityController = Get.put(ActivityController());
     // Provider.of<ProductDetailProvider>(context, listen: false)
     //     .fetchProductDetails(id: widget.productId);
     // _fetchWishlistStatus();
@@ -51,6 +95,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen>
   Widget build(BuildContext context) {
     //  print('---------------------------------${widget.productId}');
     var querySize = MediaQuery.of(context).size;
+
     return Scaffold(
         appBar: buildAppBar(),
         backgroundColor: Colors.white,
@@ -92,7 +137,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen>
                             children: [
                               // CarouselSlider and other elements
                               CarouselSlider.builder(
-                                itemCount: 3, // productDetailProvidervalue
+                                itemCount: widget.serviceDetails.sliderImages.length, // productDetailProvidervalue
                                 //     .productDetails!.data!.images!.length,
                                 itemBuilder: (context, index, realIndex) {
                                   return Stack(
@@ -104,8 +149,8 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen>
                                           borderRadius: BorderRadius.circular(
                                               querySize.height * 0.01),
                                           image: DecorationImage(
-                                            image: AssetImage(
-                                                'assets/images/bedroom.png'), //NetworkImage(
+                                            image: NetworkImage(widget.serviceDetails.sliderImages[index]), // Dynamically use the image from sliderImages
+                                             //NetworkImage(
                                             // productDetailProvidervalue
                                             //     .productDetails!
                                             //     .data!
@@ -114,259 +159,6 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen>
                                           ),
                                         ),
                                       ),
-                                      // Positioned(
-                                      //   top: querySize.height * 0.025,
-                                      //   right: querySize.height * 0.02,
-                                      //   child: Row(
-                                      //     children: [
-                                      //       // CircleAvatar(
-                                      //       //   radius: querySize.width * 0.033,
-                                      //       //   backgroundColor: Colors.white,
-                                      //       //   child: Image.asset(
-                                      //       //     'assets/images/product_detail_image/share.png',
-                                      //       //     width: querySize.width * 0.04,
-                                      //       //     height:
-                                      //       //         querySize.height * 0.017,
-                                      //       //   ),
-                                      //       // ),
-                                      //       // SizedBox(
-                                      //       //     width:
-                                      //       //         querySize.width * 0.02),
-                                      //       // Consumer2<GetWishListProvider,
-                                      //       //     AddToWishlistProvider>(
-                                      //       //   builder: (context,
-                                      //       //       getWishListProvider,
-                                      //       //       addToWishlistProvider,
-                                      //       //       child) {
-                                      //       //     final productId =
-                                      //       //         productDetailProvidervalue
-                                      //       //             .productDetails!
-                                      //       //             .data!
-                                      //       //             .id!;
-                                      //       //     final isInWishlist =
-                                      //       //         addToWishlistProvider
-                                      //       //             .isProductInWishlist(
-                                      //       //                 productId);
-
-                                      //       //     return GestureDetector(
-                                      //       //       onTap: () async {
-                                      //       //         String token =
-                                      //       //             await Provider.of<
-                                      //       //                             AuthProvider>(
-                                      //       //                         context,
-                                      //       //                         listen:
-                                      //       //                             false)
-                                      //       //                     .getToken() ??
-                                      //       //                 '';
-                                      //       //         if (token.isEmpty) {
-                                      //       //           customSnackBar(context,
-                                      //       //               "Please Sign In");
-                                      //       //         } else {
-                                      //       //           // Add or remove from wishlist based on current state
-                                      //       //           if (isInWishlist) {
-                                      //       //             await addToWishlistProvider
-                                      //       //                 .addToWishListProvider(
-                                      //       //                     productId,
-                                      //       //                     '0',
-                                      //       //                     token);
-                                      //       //           } else {
-                                      //       //             await addToWishlistProvider
-                                      //       //                 .addToWishListProvider(
-                                      //       //                     productId,
-                                      //       //                     '1',
-                                      //       //                     token);
-                                      //       //           }
-                                      //       //         }
-                                      //       //       },
-                                      //       //       child: CircleAvatar(
-                                      //       //         radius: querySize.width *
-                                      //       //             0.033,
-                                      //       //         backgroundColor:
-                                      //       //             isInWishlist
-                                      //       //                 ? Colors.red
-                                      //       //                 : Colors.white,
-                                      //       //         child: Image.asset(
-                                      //       //           isInWishlist
-                                      //       //               ? 'assets/images/app icon.png'
-                                      //       //               : 'assets/images/home/favourite.png',
-                                      //       //           width: querySize.width *
-                                      //       //               0.075,
-                                      //       //           height:
-                                      //       //               querySize.height *
-                                      //       //                   0.037,
-                                      //       //         ),
-                                      //       //       ),
-                                      //       //     );
-                                      //       //   },
-                                      //       // )
-
-                                      //       // Consumer<GetWishListProvider>(...............................................
-                                      //       //     builder: (context,
-                                      //       //         getWishListvalue, child) {
-                                      //       //   return Consumer<
-                                      //       //           AddToWishlistProvider>(
-                                      //       //       builder: (context,
-                                      //       //           wishlistValue, child) {
-                                      //       //     return GestureDetector(
-                                      //       //       onTap: () async {
-                                      //       //         String token =
-                                      //       //             await Provider.of<
-                                      //       //                             AuthProvider>(
-                                      //       //                         context,
-                                      //       //                         listen:
-                                      //       //                             false)
-                                      //       //                     .getToken() ??
-                                      //       //                 '';
-                                      //       //         if (token == '') {
-                                      //       //           return customSnackBar(
-                                      //       //               context,
-                                      //       //               "Please SignIn");
-                                      //       //         } else if (getWishListvalue
-                                      //       //                 .isProductInWishlist(
-                                      //       //                     productDetailProvidervalue
-                                      //       //                         .productDetails!
-                                      //       //                         .data!
-                                      //       //                         .id!) ==
-                                      //       //             false)
-                                      //       //           wishlistValue
-                                      //       //               .addToWishListProvider(
-                                      //       //                   productDetailProvidervalue
-                                      //       //                       .productDetails!
-                                      //       //                       .data!
-                                      //       //                       .id!,
-                                      //       //                   '1',
-                                      //       //                   token);
-                                      //       //         else if (getWishListvalue
-                                      //       //                 .isProductInWishlist(
-                                      //       //                     productDetailProvidervalue
-                                      //       //                         .productDetails!
-                                      //       //                         .data!
-                                      //       //                         .id!) ==
-                                      //       //             true)
-                                      //       //           wishlistValue
-                                      //       //               .addToWishListProvider(
-                                      //       //                   productDetailProvidervalue
-                                      //       //                       .productDetails!
-                                      //       //                       .data!
-                                      //       //                       .id!,
-                                      //       //                   '0',
-                                      //       //                   token);
-                                      //       //         print('touched');
-                                      //       //       },
-                                      //       //       child: CircleAvatar(
-                                      //       //         radius: querySize.width *
-                                      //       //             0.033,
-                                      //       //         backgroundColor:
-                                      //       //             Colors.white,
-                                      //       //         child: getWishListvalue
-                                      //       //                     .isProductInWishlist(
-                                      //       //                         productDetailProvidervalue
-                                      //       //                             .productDetails!
-                                      //       //                             .data!
-                                      //       //                             .id!) ==
-                                      //       //                 false
-                                      //       //             ? Image.asset(
-                                      //       //                 'assets/images/home/favourite.png',
-                                      //       //                 width: querySize
-                                      //       //                         .width *
-                                      //       //                     0.075,
-                                      //       //                 height: querySize
-                                      //       //                         .height *
-                                      //       //                     0.037,
-                                      //       //               )
-                                      //       //             : Image.asset(
-                                      //       //                 'assets/images/app icon.png',
-                                      //       //                 width: querySize
-                                      //       //                         .width *
-                                      //       //                     0.075,
-                                      //       //                 height: querySize
-                                      //       //                         .height *
-                                      //       //                     0.037,
-                                      //       //               ),
-                                      //       //       ),
-                                      //       //     );
-                                      //       //   });
-                                      //       // }),
-                                      //       Consumer<WishlistProvider>(
-                                      //         builder: (context,
-                                      //             wishlistProvider, child) {
-                                      //           // if (wishlistProvider
-                                      //           //     .isLoading) {
-                                      //           //   return CircularProgressIndicator();
-                                      //           // }
-                                      //           if (wishlistProvider
-                                      //                   .errorMessage !=
-                                      //               null) {
-                                      //             return Text(
-                                      //                 'Error: ${wishlistProvider.errorMessage}');
-                                      //           }
-
-                                      //           final isInWishlist =
-                                      //               wishlistProvider
-                                      //                   .isProductInWishlist(
-                                      //                       widget.productId);
-
-                                      //           return GestureDetector(
-                                      //             onTap: () async {
-                                      //               final authProvider =
-                                      //                   Provider.of<
-                                      //                           AuthProvider>(
-                                      //                       context,
-                                      //                       listen: false);
-                                      //               final token =
-                                      //                   await authProvider
-                                      //                       .getToken();
-
-                                      //               if (token == null) {
-                                      //                 ScaffoldMessenger.of(
-                                      //                         context)
-                                      //                     .showSnackBar(
-                                      //                   SnackBar(
-                                      //                       content: Text(
-                                      //                           "Please SignIn")),
-                                      //                 );
-                                      //                 return;
-                                      //               }
-
-                                      //               // Toggle wishlist status
-                                      //               await wishlistProvider
-                                      //                   .toggleWishlist(token,
-                                      //                       widget.productId);
-                                      //             },
-                                      //             child: CircleAvatar(
-                                      //               radius: querySize.width *
-                                      //                   0.033,
-                                      //               backgroundColor:
-                                      //                   Colors.white,
-                                      //               child: isInWishlist
-                                      //                   ? Image.asset(
-                                      //                       'assets/images/love (1).png',
-                                      //                       width: querySize
-                                      //                               .width *
-                                      //                           0.048,
-                                      //                       height: querySize
-                                      //                               .height *
-                                      //                           0.018,
-                                      //                     )
-                                      //                   : Image.asset(
-                                      //                       'assets/images/home/favourite.png',
-                                      //                       width: querySize
-                                      //                               .width *
-                                      //                           0.075,
-                                      //                       height: querySize
-                                      //                               .height *
-                                      //                           0.037,
-                                      //                     ),
-                                      //             ),
-                                      //           );
-                                      //         },
-                                      //       ),
-                                      //       SizedBox(
-                                      //           width:
-                                      //               querySize.width * 0.02),
-                                      //     ],
-                                      //   ),
-                                      // ),
                                     ],
                                   );
                                 },
@@ -390,7 +182,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen>
                                 child: Center(
                                   child: AnimatedSmoothIndicator(
                                     activeIndex: detailActiveIndex,
-                                    count: 3, //productDetailProvidervalue
+                                    count: widget.serviceDetails.sliderImages.length, //productDetailProvidervalue
                                     //.productDetails!.data!.images!.length,
                                     effect: SlideEffect(
                                       dotHeight: querySize.height * 0.008,
@@ -466,24 +258,24 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen>
                             children: [],
                           ),
                           SizedBox(
-                            height: querySize.height * 0.01,
+                            height: querySize.height * 0.03,
                           ),
                           Text(
-                            "Agent Name",
+                            widget.serviceDetails.title,
                             style: TextStyle(
                                 fontWeight: FontWeight.w600,
                                 color: AppColor.primaryColor,
                                 fontFamily: 'Segoe',
-                                fontSize: querySize.width * 0.047),
+                                fontSize: querySize.width * 0.049),
                           ),
                           SizedBox(
                             height: querySize.height * 0.01,
                           ),
                           Text(
-                            'QAR ',
+                            'QAR  ${widget.serviceDetails.startingPrice} ',
                             style: TextStyle(
                                 fontFamily: 'ElMessirisemibold',
-                                fontSize: querySize.height * 0.025,
+                                fontSize: querySize.height * 0.020,
                                 fontWeight: FontWeight.w600),
                           ),
                           SizedBox(
@@ -492,14 +284,14 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen>
                           Row(
                             children: [
                               Text(
-                                "Qatar",
+                                widget.serviceDetails.location ?? '',
                                 style: TextStyle(
                                     fontWeight: FontWeight.w600,
                                     color: Colors.black,
                                     fontFamily: 'Segoe',
                                     fontSize: querySize.width * 0.035),
                               ),
-                              GestureDetector(
+                             /* GestureDetector(
                                 onTap: () async {
                                   // Replace these with your actual latitude and longitude
                                   final double latitude = 10.22;
@@ -524,7 +316,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen>
                                       fontSize: querySize.width * 0.035,
                                       fontWeight: FontWeight.w600),
                                 ),
-                              )
+                              )*/
                               // Text(
                               //   '    View On Map',
                               //   style: TextStyle(
@@ -549,14 +341,38 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen>
                           SizedBox(
                             height: querySize.height * 0.01,
                           ),
-                          Text(
-                            "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book",
+
+                          Html(
+                            data: cleanDescription(widget.serviceDetails.description), // Use the raw HTML response here
+                            style: {
+                              "p": Style(
+                                fontSize: FontSize(16), // Adjust paragraph font size
+                                lineHeight: LineHeight(1.6), // Adjust line spacing
+                                color: AppColor.descriptionColor, // Customize text color
+                              ),
+                              "strong": Style(
+                                fontWeight: FontWeight.bold, // Bold text for strong elements
+                              ),
+                              "ul": Style(
+                                padding: HtmlPaddings.all(16), // Correct padding type for lists
+                              ),
+                              "li": Style(
+                                fontSize: FontSize(14), // Adjust list item font size
+                                // Use Margins for list item margins
+                                listStyleType: ListStyleType.disc, // Add bullets to the list
+                              ),
+                            },
+                          ),
+
+
+                         /* Text(
+                            cleanDescription(widget.serviceDetails.description),
                             style: TextStyle(
-                                fontSize: querySize.width * 0.03,
+                                fontSize: querySize.width * 0.04,
                                 fontFamily: 'Segoe',
                                 color: Colors.black,
                                 fontWeight: FontWeight.w500),
-                          ),
+                          ),*/
                           // TabBar(
                           //   labelColor: Colors.amber,
                           //   unselectedLabelColor: Colors.black,
@@ -1203,6 +1019,10 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen>
                             // final whatsappUrl =
                             //     "whatsapp://send?phone=YOUR_PHONE_NUMBER&text=Hello";
                             // launchUrl(Uri.parse(whatsappUrl));
+
+
+                            String whatsapp = widget.serviceDetails.vendorName.phone; // Get dynamically
+                            activityController.openWhatsApp(whatsapp);
                           },
                           icon: Image.asset(
                             Assets.images.whatsapp.path,
@@ -1213,9 +1033,8 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen>
                       // Call Button
                       IconButton(
                         onPressed: () {
-                          // Launch phone dialer
-                          // final phoneUrl = "tel:YOUR_PHONE_NUMBER";
-                          // launchUrl(Uri.parse(phoneUrl));
+                          String agentPhoneNumber = widget.serviceDetails.vendorName.phone; // Get dynamically
+                          activityController.launchDialer(agentPhoneNumber);
                         },
                         icon: const Icon(
                           Icons.phone, color: Color(0xFFEFECE4),
@@ -1227,9 +1046,8 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen>
                       // SMS Button
                       IconButton(
                         onPressed: () {
-                          // Launch SMS
-                          // final smsUrl = "sms:YOUR_PHONE_NUMBER";
-                          // launchUrl(Uri.parse(smsUrl));
+                          String agentEmail = widget.serviceDetails.vendorName.email; // Get dynamically
+                          activityController.openGmail(agentEmail);
                         },
                         icon: const Icon(
                           Icons.sms,

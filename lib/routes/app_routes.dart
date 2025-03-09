@@ -12,6 +12,7 @@ import 'package:luxury_real_estate_flutter_ui_kit/views/drawer/responses/respons
 import 'package:luxury_real_estate_flutter_ui_kit/views/drawer/terms_of_use/about_us_view.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/views/drawer/terms_of_use/privacy_policy_view.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/views/drawer/terms_of_use/terms_of_use_view.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/views/drawer/terms_of_use/termsconditions.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/views/drawer/viewed_property/viewed_property_view.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/views/home/delete_listing_view.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/views/home/home_view.dart';
@@ -44,6 +45,12 @@ import 'package:luxury_real_estate_flutter_ui_kit/views/reviews/add_reviews_for_
 import 'package:luxury_real_estate_flutter_ui_kit/views/saved/saved_properties_view.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/views/search/search_view.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/views/splash/splash_view.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/views/property_list/propertytype_list_view.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/views/property_list/enquiryform.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/views/requirements/requirements.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/views/customer_needs/customer_needs.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/views/profile/my_needs/myneeds.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/views/requirement_update./req_update.dart';
 
 class AppRoutes {
   static const String splashView = "/splash_view";
@@ -51,11 +58,13 @@ class AppRoutes {
   static const String loginView = "/login_view";
   static const String otpView = "/otp_view";
   static const String registerView = "/register_view";
+  static const String myNeeds = "/myneeds";
   static const String homeView = "/home_view";
   static const String vendorHomeView = "/vendor_home_view";
   static const String bottomBarView = "/bottom_bar_view";
   static const String notificationView = "/notification_view";
   static const String searchView = "/search_view";
+  static const String reqUpdate = "/req_update";
   static const String propertyListView = "/property_list_view";
   static const String propertyDetailsView = "/property_details_view";
   static const String galleryView = "/gallery_view";
@@ -64,10 +73,12 @@ class AppRoutes {
   static const String contactOwnerView = "/contact_owner_view";
   static const String postPropertyView = "/post_property_view";
   static const String addPropertyDetailsView = "/add_property_details_view";
+  static const String enquiryForm = "/enquiryform.dart";
   static const String addPhotosAndPricingView = "/add_photos_and_pricing_view";
   static const String addAmenitiesView = "/add_amenities_view";
   static const String showPropertyDetailsView = "/show_property_details_view";
   static const String editPropertyView = "/edit_property_view";
+  static const String req = "/requirements";
   static const String editPropertyDetailsView = "/edit_property_details_view";
   static const String popularBuildersView = "/popular_builders_view";
   static const String savedPropertiesView = "/saved_properties_view";
@@ -79,6 +90,7 @@ class AppRoutes {
   static const String editProfileView = "/edit_profile_view";
   static const String agentsListView = "/agents_list_view";
   static const String agentsDetailsView = "/agents_details_view";
+  static const String customerNeeds = "/customer_needs";
   static const String addReviewsForBrokerView = "/add_reviews_for_broker_view";
   static const String addReviewsForPropertyView =
       "/add_reviews_for_property_view";
@@ -89,10 +101,12 @@ class AppRoutes {
   static const String feedbackView = "/feedback_view";
   static const String termsOfUseView = "/terms_of_use_view";
   static const String privacyPolicyView = "/privacy_policy_view";
+  static const String termsconditionsView = "/termsconditions";
   static const String aboutUsView = "/about_us_view";
   static const String languagesView = "/languages_view";
   static const String deleteListingView = "/delete_listing_view";
   static const String activityView = "/activity_view";
+  static const String propertyTypeListView = "/propertytype_list_view";
 
   static List<GetPage> pages = [
     GetPage(name: splashView, page: () => SplashView()),
@@ -101,12 +115,14 @@ class AppRoutes {
     GetPage(name: otpView, page: () => OtpView()),
     GetPage(name: registerView, page: () => RegisterView()),
     GetPage(name: homeView, page: () => HomeView()),
+    GetPage(name: enquiryForm, page: () => EnquiryForm()),
     GetPage(name: vendorHomeView, page: () => VendorHomeView()),
     GetPage(name: bottomBarView, page: () => BottomBarView()),
     GetPage(name: notificationView, page: () => NotificationView()),
     GetPage(name: searchView, page: () => SearchView()),
     GetPage(name: propertyListView, page: () => PropertyListView()),
-    GetPage(name: propertyDetailsView, page: () => PropertyDetailsView()),
+    GetPage(name: propertyTypeListView, page: () => PropertyTypeListView()),
+    GetPage(name: propertyDetailsView, page: () => PropertyDetailsView(/*propertyId:Get.arguments ,*/)),
     GetPage(name: galleryView, page: () => GalleryView()),
     GetPage(name: furnishingDetailsView, page: () => FurnishingDetailsView()),
     GetPage(name: aboutPropertyView, page: () => AboutPropertyView()),
@@ -124,6 +140,7 @@ class AppRoutes {
     GetPage(name: popularBuildersView, page: () => PopularBuildersView()),
     GetPage(name: savedPropertiesView, page: () => SavedPropertiesView()),
     GetPage(name: contactPropertyView, page: () => ContactPropertyView()),
+    GetPage(name: myNeeds, page: () => MyNeedsView()),
     GetPage(name: viewedPropertyView, page: () => ViewedPropertyView()),
     GetPage(name: recentActivityView, page: () => RecentActivityView()),
     GetPage(name: responsesView, page: () => ResponsesView()),
@@ -144,6 +161,7 @@ class AppRoutes {
     GetPage(name: feedbackView, page: () => FeedbackView()),
     GetPage(name: termsOfUseView, page: () => const TermsOfUseView()),
     GetPage(name: privacyPolicyView, page: () => const PrivacyPolicyView()),
+    GetPage(name: termsconditionsView, page: () => const TermsConditionsView()),
     GetPage(name: aboutUsView, page: () => const AboutUsView()),
     GetPage(name: languagesView, page: () => LanguagesView()),
     GetPage(name: deleteListingView, page: () => DeleteListingView()),

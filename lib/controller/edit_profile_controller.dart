@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/configs/app_string.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/model/profile_model.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/configs/share_pref.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class EditProfileController extends GetxController {
   RxBool hasFullNameFocus = true.obs;
@@ -17,10 +21,10 @@ class EditProfileController extends GetxController {
   FocusNode phoneNumberFocusNode = FocusNode();
   FocusNode phoneNumber2FocusNode = FocusNode();
   FocusNode emailFocusNode = FocusNode();
-  TextEditingController fullNameController = TextEditingController(text: AppString.francisZieme);
-  TextEditingController phoneNumberController = TextEditingController(text: AppString.francisZiemeNumber);
+  TextEditingController fullNameController = TextEditingController();
+  TextEditingController phoneNumberController = TextEditingController();
   TextEditingController phoneNumber2Controller = TextEditingController();
-  TextEditingController emailController = TextEditingController(text: AppString.francisZiemeEmail);
+  TextEditingController emailController = TextEditingController();
   TextEditingController aboutMeController = TextEditingController();
   TextEditingController whatAreYouHereController = TextEditingController();
 
@@ -29,6 +33,8 @@ class EditProfileController extends GetxController {
   RxString profileImagePath = ''.obs;
   Rx<Uint8List?> webImage = Rx<Uint8List?>(null);
   RxString profileImage="".obs;
+  Rx<UserProfile?> userProfile = Rx<UserProfile?>(null);
+  RxBool isLoading = false.obs;
 
   @override
   void onInit() {
@@ -57,6 +63,7 @@ class EditProfileController extends GetxController {
     emailController.addListener(() {
       hasEmailInput.value = emailController.text.isNotEmpty;
     });
+    _checkTokenAndFetchProfile();
   }
 
   void toggleWhatAreYouHereExpansion() {
@@ -67,6 +74,45 @@ class EditProfileController extends GetxController {
     isWhatAreYouHereSelect.value = index;
     whatAreYouHereController.text = whatAreYouHereList[index];
   }
+  Future<void> _checkTokenAndFetchProfile() async {
+    final token = await UserTypeManager.getToken();
+    if (token != null) {
+      // If token exists, fetch the profile from the API
+      await _fetchProfileData(token);
+    } else {
+      // If token is null, remain with the default greeting
+      userProfile.value = null;
+    }
+  }
+
+  // API call to fetch user profile
+  Future<void> _fetchProfileData(String token) async {
+    try {
+      isLoading.value = true;
+      final response = await http.get(
+        Uri.parse('https://project.artisans.qa/realestate/api/user/my-profile'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        // Parse the JSON response and update userProfile
+        final profileData = UserProfile.fromJson(jsonDecode(response.body)['user']);
+        userProfile.value = profileData;
+      } else {
+        // Handle API error
+        Get.snackbar('Error', 'Failed to fetch profile data');
+      }
+    } catch (e) {
+      // Handle other errors (network issues, etc.)
+      Get.snackbar('Error', 'Something went wrong');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+
+
+
 
   Future<void> updateProfileImage() async {
     final image = await ImagePicker().pickImage(source: ImageSource.gallery);

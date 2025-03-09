@@ -6,6 +6,9 @@ import 'package:luxury_real_estate_flutter_ui_kit/configs/app_string.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/configs/app_style.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/routes/app_routes.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/views/user_type/user_type_screen.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:luxury_real_estate_flutter_ui_kit/configs/share_pref.dart';
 
 logoutBottomSheet(BuildContext context) {
   return showModalBottomSheet(
@@ -95,10 +98,7 @@ logoutBottomSheet(BuildContext context) {
                     // },
 
                     onTap: () {
-                      // Navigator.pushReplacement(
-                      //   context,
-                      // );
-                      Get.offAllNamed(AppRoutes.loginView);
+                      _logoutUser(context);
                     },
                     child: Container(
                       height: AppSize.appSize49,
@@ -123,4 +123,41 @@ logoutBottomSheet(BuildContext context) {
       );
     },
   );
+}
+
+
+_logoutUser(BuildContext context) async {
+  String? token = await UserTypeManager.getToken();
+  if (token != null) {
+    try {
+      final response = await http.post(
+        Uri.parse('https://project.artisans.qa/realestate/api/logout'),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        // Successfully logged out
+        print('Logout successful: ${response.body}');
+        // Clear the token
+        await UserTypeManager.removeToken();
+
+        // Optionally verify the token is cleared
+        String? clearedToken = await UserTypeManager.getToken();
+        print('Cleared Token: $clearedToken');
+        Get.snackbar("Success", "Logout Successfully");
+        // Navigate to login screen
+        Get.offAllNamed(AppRoutes.bottomBarView);
+      } else {
+        // If the API call fails
+        print('Logout failed: ${response.body}');
+      }
+    } catch (e) {
+      // Handle error
+      print('Error during logout: $e');
+    }
+  } else {
+    print('Token is null');
+  }
 }

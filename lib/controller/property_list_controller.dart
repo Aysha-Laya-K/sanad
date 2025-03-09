@@ -3,19 +3,34 @@ import 'package:get/get.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/configs/app_string.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/gen/assets.gen.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/model/property__model.dart';
 
 class PropertyListController extends GetxController {
   TextEditingController searchController = TextEditingController();
   RxList<bool> isPropertyLiked = <bool>[].obs;
+  RxList<Property> properties = <Property>[].obs;
+  var loading = true.obs;
 
-  void launchDialer() async {
-    final Uri phoneNumber = Uri(scheme: 'tel', path: '9995958748');
-    if (await canLaunchUrl(phoneNumber)) {
-      await launchUrl(phoneNumber);
+
+  void launchDialer(String phoneNumber) async {
+    final Uri phoneUri = Uri(scheme: 'tel', path: '+974$phoneNumber');
+    if (await canLaunchUrl(phoneUri)) {
+      await launchUrl(phoneUri);
     } else {
-      throw 'Could not launch $phoneNumber';
+      throw 'Could not launch $phoneUri';
     }
   }
+
+  Future<void> openWhatsApp(String whatsapp) async {
+    final whatsappUrl = Uri.parse('https://wa.me/+974$whatsapp'); // Convert the string to Uri
+    await launchUrl(whatsappUrl);  // Launch the URL
+
+  }
+
+  void setProperties(List<Property> propertyList) {
+    properties.value = propertyList;
+  }
+
 
   RxList<String> searchImageList = [
     Assets.images.searchProperty1.path,
@@ -74,6 +89,7 @@ class PropertyListController extends GetxController {
   @override
   void dispose() {
     super.dispose();
+
     searchController.clear();
   }
 }

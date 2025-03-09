@@ -125,7 +125,7 @@ class OnboardView extends StatelessWidget {
       padding: const EdgeInsets.all(AppSize.appSize6),
       height: AppSize.appSize68,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppSize.appSize50),
+        borderRadius: BorderRadius.circular(AppSize.appSize49),
         color: AppColor.textColor.withOpacity(AppSize.appSizePoint90),
       ),
       child: Row(

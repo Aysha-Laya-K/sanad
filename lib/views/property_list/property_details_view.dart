@@ -17,27 +17,86 @@ import 'package:luxury_real_estate_flutter_ui_kit/model/text_segment_model.dart'
 import 'package:luxury_real_estate_flutter_ui_kit/routes/app_routes.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/views/property_list/widget/owner_country_picker_bottom_sheet.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/model/propertydetails_model.dart';
+import 'package:carousel_slider/carousel_slider.dart';
+import 'package:smooth_page_indicator/smooth_page_indicator.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/views/property_list/enquiryform.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/views/reviews/add_reviews_for_property_view.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:luxury_real_estate_flutter_ui_kit/configs/share_pref.dart';
+import 'package:html/parser.dart' as html;
+import 'package:html_unescape/html_unescape.dart';
 
-class PropertyDetailsView extends StatelessWidget {
+
+class PropertyDetailsView extends StatefulWidget {
   PropertyDetailsView({super.key});
+
+  @override
+  State<PropertyDetailsView> createState() => _PropertyDetailsViewState();
+}
+
+class _PropertyDetailsViewState extends State<PropertyDetailsView> {
+  final PageController _pageController = PageController();
+  RxMap<int, bool> isSavedMap = RxMap<int, bool>();
 
   PropertyDetailsController propertyDetailsController =
       Get.put(PropertyDetailsController());
+
   OwnerCountryPickerController ownerCountryPickerController =
       Get.put(OwnerCountryPickerController());
+  late int propertyId;
+
+  String cleanDescription(String htmlString) {
+    // Decode HTML entities multiple times
+    HtmlUnescape unescape = HtmlUnescape();
+    String decodedString = unescape.convert(htmlString);
+    decodedString = unescape.convert(decodedString); // Double decoding
+
+    // Parse the decoded HTML string and extract text content
+    final document = html.parse(decodedString);
+    String parsedString = document.body?.text ?? '';
+
+    // Ensure no HTML tags remain
+    parsedString = parsedString.replaceAll(RegExp(r'<[^>]*>'), '');
+
+    // Remove extra spaces, new lines, and trim
+    parsedString = parsedString.replaceAll(RegExp(r'\s+'), ' ').trim();
+
+    return parsedString;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    propertyId = Get.arguments as int;
+    propertyDetailsController.fetchPropertyDetails(propertyId);
+    print('Current Route: ${Get.routing.current}');
+
+  }
+
 
   @override
   Widget build(BuildContext context) {
-    propertyDetailsController.isSimilarPropertyLiked.value =
-        List<bool>.generate(
-            propertyDetailsController.searchImageList.length, (index) => false);
-    return Obx(() => Scaffold(
-          backgroundColor: AppColor.whiteColor,
-          appBar: buildAppBar(),
-          body: buildPropertyDetails(context),
-          bottomNavigationBar: buildButton(),
-        ));
+    return Scaffold(
+      backgroundColor: AppColor.whiteColor,
+      appBar: buildAppBar(),
+      body: Obx(() {
+        final propertyDetails = propertyDetailsController.propertyDetails.value;
+
+        if (propertyDetails == null || propertyDetailsController.isLoading.value) {
+          return Center(child: CircularProgressIndicator());
+        }
+
+        return buildPropertyDetails(context, propertyDetails, propertyId);
+      }),
+      bottomNavigationBar: Obx(() {
+        final propertyDetails = propertyDetailsController.propertyDetails.value;
+        return propertyDetails != null ? buildButton(context, propertyDetails) : SizedBox();
+      }),
+    );
   }
+
 
   AppBar buildAppBar() {
     return AppBar(
@@ -48,6 +107,7 @@ class PropertyDetailsView extends StatelessWidget {
         child: GestureDetector(
           onTap: () {
             Get.back();
+           // Navigator.pop(context);
           },
           child: Image.asset(
             Assets.images.backArrow.path,
@@ -56,7 +116,7 @@ class PropertyDetailsView extends StatelessWidget {
       ),
       leadingWidth: AppSize.appSize40,
       actions: [
-        Row(
+       /* Row(
           children: [
             GestureDetector(
               onTap: () {
@@ -99,90 +159,82 @@ class PropertyDetailsView extends StatelessWidget {
               ),
             ),
           ],
-        ).paddingOnly(right: AppSize.appSize16),
+        ).paddingOnly(right: AppSize.appSize16),*/
       ],
-      // bottom: PreferredSize(
-      //   preferredSize: const Size.fromHeight(AppSize.appSize40),
-      //   child: SizedBox(
-      //     height: AppSize.appSize40,
-      //     child: ListView(
-      //       scrollDirection: Axis.horizontal,
-      //       children: [
-      //         Row(
-      //           children: List.generate(
-      //               propertyDetailsController.propertyList.length, (index) {
-      //             return GestureDetector(
-      //               onTap: () {
-      //                 propertyDetailsController.updateProperty(index);
-      //               },
-      //               child: Obx(() => Container(
-      //                     height: AppSize.appSize25,
-      //                     padding: const EdgeInsets.symmetric(
-      //                         horizontal: AppSize.appSize14),
-      //                     decoration: BoxDecoration(
-      //                       border: Border(
-      //                         bottom: BorderSide(
-      //                           color: propertyDetailsController
-      //                                       .selectProperty.value ==
-      //                                   index
-      //                               ? AppColor.primaryColor
-      //                               : AppColor.borderColor,
-      //                           width: AppSize.appSize1,
-      //                         ),
-      //                         right: BorderSide(
-      //                           color: index == AppSize.size6
-      //                               ? Colors.transparent
-      //                               : AppColor.borderColor,
-      //                           width: AppSize.appSize1,
-      //                         ),
-      //                       ),
-      //                     ),
-      //                     child: Center(
-      //                       child: Text(
-      //                         propertyDetailsController.propertyList[index],
-      //                         style: AppStyle.heading5Medium(
-      //                           color: propertyDetailsController
-      //                                       .selectProperty.value ==
-      //                                   index
-      //                               ? AppColor.primaryColor
-      //                               : AppColor.textColor,
-      //                         ),
-      //                       ),
-      //                     ),
-      //                   )),
-      //             );
-      //           }),
-      //         ).paddingOnly(
-      //           top: AppSize.appSize10,
-      //           left: AppSize.appSize16,
-      //           right: AppSize.appSize16,
-      //         ),
-      //       ],
-      //     ),
-      //   ),
-      // ),
+
     );
   }
 
-  Widget buildPropertyDetails(BuildContext context) {
+  Widget buildPropertyDetails(BuildContext context, propertyDetails,propertyId) {
+    final additionalInformationsWithYes = propertyDetails?.additionalInformations
+        ?.where((info) => info.addValue?.toLowerCase() == "yes")
+        .toList() ?? [];
     return SingleChildScrollView(
       padding: const EdgeInsets.only(bottom: AppSize.appSize30),
       physics: const ClampingScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            height: AppSize.appSize200,
+          propertyDetails?.sliders?.isNotEmpty == true
+              ? Stack(
+            children: [
+              // **PageView for Image Swiping**
+              SizedBox(
+                height: 200,
+                child: PageView.builder(
+                  controller: _pageController,
+                  itemCount: propertyDetails?.sliders?.length ?? 0,
+                  itemBuilder: (context, index) {
+                    return Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        image: DecorationImage(
+                          image: NetworkImage(propertyDetails?.sliders?[index].image ?? ''),
+                          fit: BoxFit.fill,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+              // **Page Indicator**
+              Positioned(
+                bottom: 10,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: SmoothPageIndicator(
+                    controller: _pageController,
+                    count: propertyDetails?.sliders?.length ?? 0,
+                    effect: ExpandingDotsEffect(
+                      dotWidth: 8,
+                      dotHeight: 8,
+                      expansionFactor: 3.0,
+                      spacing: 4.0,
+                      activeDotColor: Colors.orange,
+                      dotColor: Colors.grey,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          )
+              : Container(
+            height: 200,
+            margin: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppSize.appSize12),
+              borderRadius: BorderRadius.circular(12),
               image: DecorationImage(
-                image: AssetImage(Assets.images.modernHouse.path),
+                image: AssetImage("assets/images/modern_house.jpg"),
                 fit: BoxFit.fill,
               ),
             ),
           ).paddingOnly(left: AppSize.appSize16, right: AppSize.appSize16),
+
           Text(
-            AppString.rupees58Lakh,
+            'QAR ${propertyDetails?.property?.price}',
             style: AppStyle.heading4Medium(color: AppColor.primaryColor),
           ).paddingOnly(
             top: AppSize.appSize16,
@@ -192,7 +244,7 @@ class PropertyDetailsView extends StatelessWidget {
           IntrinsicHeight(
             child: Row(
               children: [
-                Text(
+               /* Text(
                   AppString.readyToMove,
                   style: AppStyle.heading6Regular(
                       color: AppColor.descriptionColor),
@@ -204,21 +256,21 @@ class PropertyDetailsView extends StatelessWidget {
                   width: AppSize.appSize22,
                   indent: AppSize.appSize2,
                   endIndent: AppSize.appSize2,
-                ),
+                ),*/
                 Text(
-                  AppString.semiFurnished,
+               propertyDetails?.property?.furnish,
                   style: AppStyle.heading6Regular(
                       color: AppColor.descriptionColor),
                 ),
               ],
             ),
           ).paddingOnly(
-            top: AppSize.appSize16,
+            top: AppSize.appSize8,
             left: AppSize.appSize16,
             right: AppSize.appSize16,
           ),
           Text(
-            AppString.semiModernHouse,
+            '${propertyDetails?.property?.title}',
             style: AppStyle.heading5SemiBold(color: AppColor.textColor),
           ).paddingOnly(
             top: AppSize.appSize8,
@@ -226,7 +278,7 @@ class PropertyDetailsView extends StatelessWidget {
             right: AppSize.appSize16,
           ),
           Text(
-            AppString.address6,
+            '${propertyDetails?.property?.address}',
             style: AppStyle.heading5Regular(color: AppColor.descriptionColor),
           ).paddingOnly(
             top: AppSize.appSize4,
@@ -243,16 +295,102 @@ class PropertyDetailsView extends StatelessWidget {
             left: AppSize.appSize16,
             right: AppSize.appSize16,
           ),
-          Row(
-            children: List.generate(
-                propertyDetailsController.searchPropertyTitleList.length,
-                (index) {
-              return Container(
+
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: AppSize.appSize6,
+                      horizontal: AppSize.appSize14,
+                    ),
+                    margin: const EdgeInsets.only(right: AppSize.appSize16),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(AppSize.appSize12),
+                      border: Border.all(
+                        color: AppColor.primaryColor,
+                        width: AppSize.appSizePoint50,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.bed, // Replace with your icon
+                          size: AppSize.appSize18,
+                          color: AppColor.primaryColor,
+                        ).paddingOnly(right: AppSize.appSize6),
+                        Text(
+                          '${propertyDetails?.property?.totalBedroom}', // Replace with your static text
+                          style: AppStyle.heading5Medium(color: AppColor.textColor),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: AppSize.appSize6,
+                      horizontal: AppSize.appSize14,
+                    ),
+                    margin: const EdgeInsets.only(right: AppSize.appSize16),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(AppSize.appSize12),
+                      border: Border.all(
+                        color: AppColor.primaryColor,
+                        width: AppSize.appSizePoint50,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.bathtub, // Replace with your icon
+                          size: AppSize.appSize18,
+                          color: AppColor.primaryColor,
+                        ).paddingOnly(right: AppSize.appSize6),
+                        Text(
+                          '${propertyDetails?.property?.totalBathroom}', // Replace with your static text
+                          style: AppStyle.heading5Medium(color: AppColor.textColor),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: AppSize.appSize6,
+                      horizontal: AppSize.appSize14,
+                    ),
+                    margin: const EdgeInsets.only(right: AppSize.appSize16),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(AppSize.appSize12),
+                      border: Border.all(
+                        color: AppColor.primaryColor,
+                        width: AppSize.appSizePoint50,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.bedroom_parent, // Replace with your icon
+                          size: AppSize.appSize18,
+                          color: AppColor.primaryColor,
+                        ).paddingOnly(right: AppSize.appSize6),
+                        Text(
+                          '${propertyDetails?.property?.totalBedroom} BHK', // Replace with your static text
+                          style: AppStyle.heading5Medium(color: AppColor.textColor),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              // The "sq/m" container placed below the first row
+              Container(
                 padding: const EdgeInsets.symmetric(
                   vertical: AppSize.appSize6,
                   horizontal: AppSize.appSize14,
                 ),
-                margin: const EdgeInsets.only(right: AppSize.appSize16),
+                margin: const EdgeInsets.only(top: AppSize.appSize16),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(AppSize.appSize12),
                   border: Border.all(
@@ -261,54 +399,26 @@ class PropertyDetailsView extends StatelessWidget {
                   ),
                 ),
                 child: Row(
+                  mainAxisSize: MainAxisSize.min, // Makes the Row take only the required space
                   children: [
-                    Image.asset(
-                      propertyDetailsController.searchPropertyImageList[index],
-                      width: AppSize.appSize18,
-                      height: AppSize.appSize18,
+                    Icon(
+                      Icons.area_chart_rounded, // Replace with your icon
+                      size: AppSize.appSize18,
+                      color: AppColor.primaryColor,
                     ).paddingOnly(right: AppSize.appSize6),
                     Text(
-                      propertyDetailsController.searchPropertyTitleList[index],
+                      '${propertyDetails?.property?.totalArea} sq/m', // Replace with your static text
                       style: AppStyle.heading5Medium(color: AppColor.textColor),
                     ),
                   ],
                 ),
-              );
-            }),
-          ).paddingOnly(left: AppSize.appSize16, right: AppSize.appSize16),
-          Row(
-            children: List.generate(
-                propertyDetailsController.searchProperty2TitleList.length,
-                (index) {
-              return Container(
-                padding: const EdgeInsets.symmetric(
-                  vertical: AppSize.appSize6,
-                  horizontal: AppSize.appSize14,
-                ),
-                margin: const EdgeInsets.only(right: AppSize.appSize16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(AppSize.appSize12),
-                  border: Border.all(
-                    color: AppColor.primaryColor,
-                    width: AppSize.appSizePoint50,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Image.asset(
-                      propertyDetailsController.searchProperty2ImageList[index],
-                      width: AppSize.appSize18,
-                      height: AppSize.appSize18,
-                    ).paddingOnly(right: AppSize.appSize6),
-                    Text(
-                      propertyDetailsController.searchProperty2TitleList[index],
-                      style: AppStyle.heading5Medium(color: AppColor.textColor),
-                    ),
-                  ],
-                ),
-              );
-            }),
-          ).paddingOnly(
+              )
+
+            ],
+          )
+
+
+              .paddingOnly(
             top: AppSize.appSize10,
             left: AppSize.appSize16,
             right: AppSize.appSize16,
@@ -335,34 +445,34 @@ class PropertyDetailsView extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: List.generate(
-                      propertyDetailsController.keyHighlightsTitleList.length,
-                      (index) {
-                    return Row(
-                      children: [
-                        Container(
-                          width: AppSize.appSize5,
-                          height: AppSize.appSize5,
-                          margin:
-                              const EdgeInsets.only(left: AppSize.appSize10),
-                          decoration: const BoxDecoration(
-                            color: AppColor.whiteColor,
-                            shape: BoxShape.circle,
+                    propertyDetails?.aminities?.length ?? 0,
+                        (index) {
+                      final aminity = propertyDetails?.aminities?[index].aminity;
+                      return Row(
+                        children: [
+                          Container(
+                            width: AppSize.appSize5,
+                            height: AppSize.appSize5,
+                            margin: const EdgeInsets.only(left: AppSize.appSize10),
+                            decoration: const BoxDecoration(
+                              color: AppColor.whiteColor,
+                              shape: BoxShape.circle,
+                            ),
                           ),
-                        ),
-                        Text(
-                          propertyDetailsController
-                              .keyHighlightsTitleList[index],
-                          style: AppStyle.heading5Regular(
-                              color: AppColor.whiteColor),
-                        ).paddingOnly(left: AppSize.appSize10),
-                      ],
-                    ).paddingOnly(top: AppSize.appSize10);
-                  }),
+                          Text(
+                            propertyDetails?.aminities?[index]?.aminity?.aminity ?? '', // Handle the case where aminity is null
+                            style: AppStyle.heading5Regular(color: AppColor.whiteColor),
+                          ).paddingOnly(left: AppSize.appSize10),
+                        ],
+                      ).paddingOnly(top: AppSize.appSize10);
+                    },
+                  ),
                 ).paddingOnly(top: AppSize.appSize6),
               ],
             ),
           ),
-          Container(
+
+        /*  Container(
             margin: const EdgeInsets.only(
               top: AppSize.appSize36,
               left: AppSize.appSize16,
@@ -431,8 +541,189 @@ class PropertyDetailsView extends StatelessWidget {
               top: AppSize.appSize16,
               bottom: AppSize.appSize16,
             ),
+          ),*/
+
+          Container(
+            margin: const EdgeInsets.only(
+              top: AppSize.appSize36,
+              left: AppSize.appSize16,
+              right: AppSize.appSize16,
+            ),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppSize.appSize12),
+              color: AppColor.secondaryColor,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  AppString.propertyDetails,
+                  style: AppStyle.heading4Medium(color: AppColor.textColor),
+                ),
+                Column(
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Layout', // Static text here
+                                style: AppStyle.heading5Regular(
+                                    color: AppColor.descriptionColor),
+                              ).paddingOnly(right: AppSize.appSize10),
+                            ),
+                            Expanded(
+                              child: Text(
+                                '${propertyDetails?.property?.totalBedroom} BHK',// Static text here
+                                style: AppStyle.heading5Regular(color: AppColor.textColor),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Divider(
+                          color: AppColor.descriptionColor
+                              .withOpacity(AppSize.appSizePoint4),
+                          thickness: AppSize.appSizePoint7,
+                          height: AppSize.appSize0,
+                        ).paddingOnly(
+                            top: AppSize.appSize16, bottom: AppSize.appSize16),
+                      ],
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Purpose', // Static text here
+                                style: AppStyle.heading5Regular(
+                                    color: AppColor.descriptionColor),
+                              ).paddingOnly(right: AppSize.appSize10),
+                            ),
+                            Expanded(
+                              child: Text(
+                                '${propertyDetails?.property?.purpose}', // Static text here
+                                style: AppStyle.heading5Regular(color: AppColor.textColor),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Divider(
+                          color: AppColor.descriptionColor
+                              .withOpacity(AppSize.appSizePoint4),
+                          thickness: AppSize.appSizePoint7,
+                          height: AppSize.appSize0,
+                        ).paddingOnly(
+                            top: AppSize.appSize16, bottom: AppSize.appSize16),
+                      ],
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Period', // Static text here
+                                style: AppStyle.heading5Regular(
+                                    color: AppColor.descriptionColor),
+                              ).paddingOnly(right: AppSize.appSize10),
+                            ),
+                            Expanded(
+                              child: Text(
+                                '${propertyDetails?.property?.rentPeriod}', // Static text here
+                                style: AppStyle.heading5Regular(color: AppColor.textColor),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Divider(
+                          color: AppColor.descriptionColor
+                              .withOpacity(AppSize.appSizePoint4),
+                          thickness: AppSize.appSizePoint7,
+                          height: AppSize.appSize0,
+                        ).paddingOnly(
+                            top: AppSize.appSize16, bottom: AppSize.appSize16),
+                      ],
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Total Area', // Static text here
+                                style: AppStyle.heading5Regular(
+                                    color: AppColor.descriptionColor),
+                              ).paddingOnly(right: AppSize.appSize10),
+                            ),
+                            Expanded(
+                              child: Text(
+                                '${propertyDetails?.property?.totalArea} sq/m',// Static text here
+                                style: AppStyle.heading5Regular(color: AppColor.textColor),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Divider(
+                          color: AppColor.descriptionColor
+                              .withOpacity(AppSize.appSizePoint4),
+                          thickness: AppSize.appSizePoint7,
+                          height: AppSize.appSize0,
+                        ).paddingOnly(
+                            top: AppSize.appSize16, bottom: AppSize.appSize16),
+                      ],
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Total Unit', // Static text here
+                                style: AppStyle.heading5Regular(
+                                    color: AppColor.descriptionColor),
+                              ).paddingOnly(right: AppSize.appSize10),
+                            ),
+                            Expanded(
+                              child: Text(
+                                '${propertyDetails?.property?.totalUnit}', // Static text here
+                                style: AppStyle.heading5Regular(color: AppColor.textColor),
+                              ),
+                            ),
+                          ],
+                        ),
+
+
+
+
+                      ],
+                    ),
+
+
+                    // Add more static text pairs as needed
+                  ],
+                ).paddingOnly(top: AppSize.appSize16),
+              ],
+            ).paddingOnly(
+              left: AppSize.appSize16,
+              right: AppSize.appSize16,
+              top: AppSize.appSize16,
+              bottom: AppSize.appSize16,
+            ),
           ),
-          Text(
+
+          /* Text(
             AppString.takeATourOfOurProperty,
             style: AppStyle.heading4SemiBold(color: AppColor.textColor),
           ).paddingOnly(
@@ -588,8 +879,8 @@ class PropertyDetailsView extends StatelessWidget {
             top: AppSize.appSize16,
             left: AppSize.appSize16,
             right: AppSize.appSize16,
-          ),
-          Row(
+          ),*/
+         /* Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
@@ -652,7 +943,7 @@ class PropertyDetailsView extends StatelessWidget {
                 );
               },
             ),
-          ).paddingOnly(top: AppSize.appSize16),
+          ).paddingOnly(top: AppSize.appSize16),*/
           Text(
             AppString.facilities,
             style: AppStyle.heading4Medium(color: AppColor.textColor),
@@ -667,7 +958,7 @@ class PropertyDetailsView extends StatelessWidget {
               shrinkWrap: true,
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.only(left: AppSize.appSize16),
-              itemCount: propertyDetailsController.facilitiesImageList.length,
+              itemCount: additionalInformationsWithYes.length,
               itemBuilder: (context, index) {
                 return Container(
                   margin: const EdgeInsets.only(right: AppSize.appSize16),
@@ -684,12 +975,18 @@ class PropertyDetailsView extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Image.asset(
+                     /* Image.asset(
                         propertyDetailsController.facilitiesImageList[index],
                         width: AppSize.appSize40,
+                      ),*/
+
+                      Icon(
+                        Icons.add_business_rounded, // Change this to any suitable common icon
+                        size: AppSize.appSize40,
+                        color: AppColor.primaryColor, // Adjust color if needed
                       ),
                       Text(
-                        propertyDetailsController.facilitiesTitleList[index],
+                        additionalInformationsWithYes[index].addKey ?? '',
                         style:
                             AppStyle.heading5Regular(color: AppColor.textColor),
                       ),
@@ -725,7 +1022,7 @@ class PropertyDetailsView extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  AppString.semiModernHouse,
+                  propertyDetails?.property?.furnish,
                   style: AppStyle.heading5SemiBold(color: AppColor.textColor),
                 ).paddingOnly(bottom: AppSize.appSize8),
                 Row(
@@ -736,7 +1033,7 @@ class PropertyDetailsView extends StatelessWidget {
                     ).paddingOnly(right: AppSize.appSize6),
                     Expanded(
                       child: Text(
-                        AppString.address6,
+                        propertyDetails?.property?.address,
                         style: AppStyle.heading5Regular(
                             color: AppColor.descriptionColor),
                       ),
@@ -759,14 +1056,25 @@ class PropertyDetailsView extends StatelessWidget {
           CommonRichText(
             segments: [
               TextSegment(
-                text: AppString.aboutPropertyString,
+
+
+                text: cleanDescription(propertyDetails?.property?.description ?? ''),
                 style:
                     AppStyle.heading5Regular(color: AppColor.descriptionColor),
               ),
               TextSegment(
                 text: AppString.readMore,
                 onTap: () {
-                  Get.toNamed(AppRoutes.aboutPropertyView);
+                  Get.toNamed(
+                    AppRoutes.aboutPropertyView,
+                    arguments: {
+                      'furnish': propertyDetails?.property?.furnish,
+                      'address': propertyDetails?.property?.address,
+                      'description': propertyDetails?.property?.description,
+                      "phone": propertyDetails?.propertyAgent?.phone,
+                    },
+                  );
+
                 },
                 style: AppStyle.heading5Regular(color: AppColor.primaryColor),
               ),
@@ -1263,14 +1571,20 @@ class PropertyDetailsView extends StatelessWidget {
                 zoomControlsEnabled: false,
                 myLocationButtonEnabled: false,
                 markers: {
-                  const Marker(
-                    markerId: MarkerId(AppString.testing),
+                  Marker(
+                    markerId: const MarkerId(AppString.testing),
                     visible: true,
-                    position: LatLng(AppSize.latitude, AppSize.longitude),
+                    position: LatLng(
+                      propertyDetails?.property?.lat ?? AppSize.latitude,
+                      propertyDetails?.property?.lon ?? AppSize.longitude,
+                    ),
                   )
                 },
-                initialCameraPosition: const CameraPosition(
-                  target: LatLng(AppSize.latitude, AppSize.longitude),
+                initialCameraPosition: CameraPosition(
+                  target: LatLng(
+                    propertyDetails?.property?.lat ?? AppSize.latitude,
+                    propertyDetails?.property?.lon ?? AppSize.longitude,
+                  ),
                   zoom: AppSize.appSize15,
                 ),
               ),
@@ -1280,6 +1594,12 @@ class PropertyDetailsView extends StatelessWidget {
             left: AppSize.appSize16,
             right: AppSize.appSize16,
           ),
+
+
+
+
+
+
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -1289,7 +1609,10 @@ class PropertyDetailsView extends StatelessWidget {
               ),
               GestureDetector(
                 onTap: () {
-                  Get.toNamed(AppRoutes.addReviewsForPropertyView);
+                  //Get.toNamed(AppRoutes.addReviewsForPropertyView);
+                  Get.to(() => AddReviewsForPropertyView(),
+
+                      arguments: propertyId);
                 },
                 child: Text(
                   AppString.addReviews,
@@ -1302,11 +1625,22 @@ class PropertyDetailsView extends StatelessWidget {
             left: AppSize.appSize16,
             right: AppSize.appSize16,
           ),
+
+          propertyDetails?.reviews?.data?.isEmpty ?? true
+              ? Center(
+            child: Text(
+              'No reviews available',
+              style: AppStyle.heading5Regular(color: AppColor.descriptionColor),
+            ),
+          )
+              :
+
           ListView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: propertyDetailsController.reviewRatingImageList.length,
+            itemCount: propertyDetails?.reviews?.data?.length ?? 0,
             itemBuilder: (context, index) {
+              final review = propertyDetails?.reviews?.data?[index];
               return Container(
                 margin: const EdgeInsets.only(bottom: AppSize.appSize16),
                 padding: const EdgeInsets.all(AppSize.appSize16),
@@ -1322,28 +1656,38 @@ class PropertyDetailsView extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
+                        // Review Date
                         Text(
                           propertyDetailsController.reviewDateList[index],
                           style: AppStyle.heading6Regular(
                               color: AppColor.descriptionColor),
                         ),
-                        Image.asset(
-                          propertyDetailsController
-                              .reviewRatingImageList[index],
-                          width: AppSize.appSize122,
-                          height: AppSize.appSize18,
+
+                        // Dynamic Star Rating
+                        Row(
+                          children: List.generate(5, (starIndex) {
+                            return Icon(
+                              Icons.star,
+                              color: (starIndex < (review?.rating ?? 0))
+                                  ? Colors.orange // Filled star
+                                  : Colors.grey,  // Empty star
+                              size: AppSize.appSize18, // Adjust the size
+                            );
+                          }),
                         ),
                       ],
                     ),
+
                     Row(
                       children: [
-                        Image.asset(
-                          propertyDetailsController.reviewProfileList[index],
-                          width: AppSize.appSize36,
+                        Icon(
+                          Icons.account_circle, // You can replace this with another icon if you prefer
+                          size: AppSize.appSize36,
+                          color: AppColor.descriptionColor, // Customize color as needed
                         ),
+
                         Text(
-                          propertyDetailsController
-                              .reviewProfileNameList[index],
+                          review?.user?.name ?? '',
                           style: AppStyle.heading5Medium(
                               color: AppColor.textColor),
                         ).paddingOnly(left: AppSize.appSize6),
@@ -1355,7 +1699,7 @@ class PropertyDetailsView extends StatelessWidget {
                           color: AppColor.descriptionColor),
                     ).paddingOnly(top: AppSize.appSize10),
                     Text(
-                      propertyDetailsController.reviewDescriptionList[index],
+                      review?.review ?? '',
                       style:
                           AppStyle.heading5Regular(color: AppColor.textColor),
                     ).paddingOnly(top: AppSize.appSize10),
@@ -1368,6 +1712,9 @@ class PropertyDetailsView extends StatelessWidget {
             left: AppSize.appSize16,
             right: AppSize.appSize16,
           ),
+
+
+
           Text(
             AppString.similarHomesForYou,
             style: AppStyle.heading4Medium(color: AppColor.textColor),
@@ -1383,140 +1730,304 @@ class PropertyDetailsView extends StatelessWidget {
               shrinkWrap: true,
               physics: const ClampingScrollPhysics(),
               padding: const EdgeInsets.only(left: AppSize.appSize16),
-              itemCount: propertyDetailsController.searchImageList.length,
+              itemCount: propertyDetails?. relatedProperties.length,
               itemBuilder: (context, index) {
-                return Container(
-                  width: AppSize.appSize300,
-                  padding: const EdgeInsets.all(AppSize.appSize10),
-                  margin: const EdgeInsets.only(right: AppSize.appSize16),
-                  decoration: BoxDecoration(
-                    color: AppColor.secondaryColor,
-                    borderRadius: BorderRadius.circular(AppSize.appSize12),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Stack(
-                        children: [
-                          Image.asset(
-                            propertyDetailsController.searchImageList[index],
-                            height: AppSize.appSize200,
-                          ),
-                          Positioned(
-                            right: AppSize.appSize6,
-                            top: AppSize.appSize6,
-                            child: GestureDetector(
-                              onTap: () {
-                                propertyDetailsController
-                                        .isSimilarPropertyLiked[index] =
-                                    !propertyDetailsController
-                                        .isSimilarPropertyLiked[index];
-                              },
-                              child: Container(
-                                width: AppSize.appSize32,
-                                height: AppSize.appSize32,
-                                decoration: BoxDecoration(
-                                  color: AppColor.whiteColor
-                                      .withOpacity(AppSize.appSizePoint50),
-                                  borderRadius:
-                                      BorderRadius.circular(AppSize.appSize6),
+                final property =propertyDetails?.relatedProperties[index];
+                if (!isSavedMap.containsKey(property.id)) {
+                  isSavedMap[property.id] = false;
+                }
+
+                return GestureDetector(
+                  onTap: () async {
+                    final int propertyId =property.id;
+                    /*print('Tapped on property with ID: $propertyId');
+
+                  // Wait for the API call to finish before proceeding
+                  await fetchPropertyDetails(propertyId);
+
+                  // Print the property details that will be passed to the next view
+                  print('Passing property details: ${propertyDetails.value?.property?.title}');
+
+                  Get.toNamed(AppRoutes.propertyDetailsView, arguments: propertyDetails.value);*/
+
+
+
+                    print('Tapped on property with ID: $propertyId');
+                    await propertyDetailsController.fetchPropertyDetails(propertyId); // Fetch details
+                    //Get.toNamed(AppRoutes.propertyDetailsView, arguments: propertyController.propertyDetails.value);
+                    /*Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                        PropertyDetailsView()),
+                    );*/
+
+                    Get.toNamed(AppRoutes.propertyDetailsView, arguments: propertyId);
+
+
+                    //Get.offNamed(AppRoutes.propertyDetailsView, arguments: propertyId);
+
+                    /* Get.to(
+                          () => PropertyDetailsView(),
+                      arguments: propertyId,  preventDuplicates: false
+                    );*/
+
+                  },
+
+
+
+                  child: Container(
+                    width: AppSize.appSize300,
+                    padding: const EdgeInsets.all(AppSize.appSize10),
+                    margin: const EdgeInsets.only(right: AppSize.appSize16),
+                    decoration: BoxDecoration(
+                      color: AppColor.secondaryColor,
+                      borderRadius: BorderRadius.circular(AppSize.appSize12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Stack(
+                          children: [
+                            Image.network(
+                              property.thumbnailImage, // Load thumbnail from model
+                              height: AppSize.appSize200,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                            ),
+                            Positioned(
+                              right: AppSize.appSize6,
+                              top: AppSize.appSize6,
+                              child: GestureDetector(
+                                onTap: () async {
+                                  // Check for token before proceeding.
+                                  final token = await UserTypeManager.getToken();
+                                  if (token == null) {
+                                    // If no token, prompt the user to log in.
+                                    Get.snackbar(
+                                      'Login Required',
+                                      'Please login to add or remove property from wishlist.',
+                                      snackPosition: SnackPosition.TOP,
+                                    );
+                                    Get.toNamed(AppRoutes.loginView);
+                                    return;
+                                  }
+
+                                  // Toggle the saved state.
+                                  bool newState = !isSavedMap[property.id]!;
+                                  setState(() {
+                                    isSavedMap[property.id] = newState;
+                                  });
+
+                                  final int propertyId = property.id;
+                                  if (newState) {
+                                    // If saved state is true, call the add-to-wishlist API.
+                                    final url = Uri.parse(
+                                      'https://project.artisans.qa/realestate/api/user/add-to-wishlist/$propertyId',
+                                    );
+                                    try {
+                                      final response = await http.get(
+                                        url,
+                                        headers: {
+                                          'Authorization': 'Bearer $token',
+                                        },
+                                      );
+                                      print('Add-to-Wishlist API Response: ${response.body}');
+                                      print('Property added to wishlist with ID: $propertyId');
+                                    } catch (error) {
+                                      print('Error calling add-to-wishlist API: $error');
+                                      Get.snackbar(
+                                        'Error',
+                                        'Failed to add property to wishlist.',
+                                        snackPosition: SnackPosition.TOP,
+                                      );
+                                    }
+                                  } else {
+                                    // If saved state is false, call the remove-wishlist API.
+                                    final url = Uri.parse(
+                                      'https://project.artisans.qa/realestate/api/user/remove-wishlist/$propertyId',
+                                    );
+                                    try {
+                                      final response = await http.delete(
+                                        url,
+                                        headers: {
+                                          'Authorization': 'Bearer $token',
+                                        },
+                                      );
+                                      print('Remove-Wishlist API Response: ${response.body}');
+                                      print('Property removed ID: $propertyId');
+                                    } catch (error) {
+                                      print('Error calling remove-wishlist API: $error');
+                                      Get.snackbar(
+                                        'Error',
+                                        'Failed to remove property from wishlist.',
+                                        snackPosition: SnackPosition.TOP,
+                                      );
+                                    }
+                                  }
+                                },
+                                child: Container(
+                                  width: AppSize.appSize32,
+                                  height: AppSize.appSize32,
+                                  decoration: BoxDecoration(
+                                    color: AppColor.whiteColor.withOpacity(0.5),
+                                    borderRadius: BorderRadius.circular(AppSize.appSize6),
+                                    border: Border.all(
+                                      color: Colors.transparent,
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Icon(
+                                    isSavedMap[property.id] == true
+                                        ? Icons.bookmark
+                                        : Icons.bookmark_border,
+                                    size: AppSize.appSize20,
+                                    color: isSavedMap[property.id] == true
+                                        ? AppColor.primaryColor
+                                        : AppColor.primaryColor.withOpacity(0.6),
+                                  ),
                                 ),
-                                child: Center(
-                                  child: Obx(() => Image.asset(
-                                        propertyDetailsController
-                                                .isSimilarPropertyLiked[index]
-                                            ? Assets.images.saved.path
-                                            : Assets.images.save.path,
-                                        width: AppSize.appSize24,
-                                      )),
-                                ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            propertyDetailsController.searchTitleList[index],
-                            style: AppStyle.heading5SemiBold(
-                                color: AppColor.textColor),
-                          ),
-                          Text(
-                            propertyDetailsController.searchAddressList[index],
-                            style: AppStyle.heading5Regular(
-                                color: AppColor.descriptionColor),
-                          ).paddingOnly(top: AppSize.appSize6),
-                        ],
-                      ).paddingOnly(top: AppSize.appSize8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            propertyDetailsController.searchRupeesList[index],
-                            style: AppStyle.heading5Medium(
-                                color: AppColor.primaryColor),
-                          ),
-                          Row(
-                            children: [
-                              Text(
-                                propertyDetailsController
-                                    .searchRatingList[index],
-                                style: AppStyle.heading5Medium(
-                                    color: AppColor.primaryColor),
-                              ).paddingOnly(right: AppSize.appSize6),
-                              Image.asset(
-                                Assets.images.star.path,
-                                width: AppSize.appSize18,
-                              ),
-                            ],
-                          ),
-                        ],
-                      ).paddingOnly(top: AppSize.appSize6),
-                      Divider(
-                        color: AppColor.descriptionColor
-                            .withOpacity(AppSize.appSizePoint3),
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: List.generate(
-                            propertyDetailsController
-                                .searchPropertyImageList.length, (index) {
-                          return Container(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: AppSize.appSize6,
-                              horizontal: AppSize.appSize16,
+
+                          ],
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              property.title,
+                              style: AppStyle.heading5SemiBold(
+                                  color: AppColor.textColor),
                             ),
-                            decoration: BoxDecoration(
-                              borderRadius:
-                                  BorderRadius.circular(AppSize.appSize12),
-                              border: Border.all(
-                                color: AppColor.primaryColor,
-                                width: AppSize.appSizePoint50,
-                              ),
+                            /*Text(
+                              property.address,
+                              style: AppStyle.heading5Regular(
+                                  color: AppColor.descriptionColor),
+                            ).paddingOnly(top: AppSize.appSize6),*/
+                          ],
+                        ).paddingOnly(top: AppSize.appSize8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              "QAR ${property.price}", // Add "QAR" before the price
+                              style: AppStyle.heading5Medium(color: AppColor.primaryColor),
                             ),
-                            child: Row(
+                            Row(
                               children: [
-                                Image.asset(
-                                  propertyDetailsController
-                                      .searchPropertyImageList[index],
-                                  width: AppSize.appSize18,
-                                  height: AppSize.appSize18,
-                                ).paddingOnly(right: AppSize.appSize6),
                                 Text(
-                                  propertyDetailsController
-                                      .similarPropertyTitleList[index],
-                                  style: AppStyle.heading5Medium(
-                                      color: AppColor.textColor),
+                                  property.totalRating != null
+                                      ? property.totalRating.toString()
+                                      : 'No Rating', // Fallback for null value
+                                  style: AppStyle.heading5Medium(color: AppColor.primaryColor),
+                                ),
+                                SizedBox(width: AppSize.appSize6),
+                                Icon(
+                                  Icons.star,
+                                  color: Color(0xFFFFB84D),
+                                  size: AppSize.appSize18,
                                 ),
                               ],
                             ),
-                          );
-                        }),
-                      ),
-                    ],
+                          ],
+                        ).paddingOnly(top: AppSize.appSize6),
+                        Divider(
+                          color: AppColor.descriptionColor
+                              .withOpacity(AppSize.appSizePoint3),
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            // Display number of bedrooms
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: AppSize.appSize6,
+                                horizontal: AppSize.appSize16,
+                              ),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(AppSize.appSize12),
+                                border: Border.all(
+                                  color: AppColor.primaryColor,
+                                  width: AppSize.appSizePoint50,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.bed,
+                                    color: AppColor.primaryColor,
+                                    size: AppSize.appSize18,
+                                  ),
+                                  SizedBox(width: AppSize.appSize6),
+                                  Text(
+                                    '${property.totalBedroom} ',
+                                    style: AppStyle.heading5Medium(color: AppColor.textColor),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // Display number of bathrooms
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: AppSize.appSize6,
+                                horizontal: AppSize.appSize16,
+                              ),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(AppSize.appSize12),
+                                border: Border.all(
+                                  color: AppColor.primaryColor,
+                                  width: AppSize.appSizePoint50,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.bathtub,
+                                    color: AppColor.primaryColor,
+                                    size: AppSize.appSize18,
+                                  ),
+                                  SizedBox(width: AppSize.appSize6),
+                                  Text(
+                                    '${property.totalBathroom} ',
+                                    style: AppStyle.heading5Medium(color: AppColor.textColor),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // Display area
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: AppSize.appSize6,
+                                horizontal: AppSize.appSize16,
+                              ),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(AppSize.appSize12),
+                                border: Border.all(
+                                  color: AppColor.primaryColor,
+                                  width: AppSize.appSizePoint50,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.area_chart,
+                                    color: AppColor.primaryColor,
+                                    size: AppSize.appSize18,
+                                  ),
+                                  SizedBox(width: AppSize.appSize6),
+                                  Text(
+                                    '${property.totalArea} sq/m',
+                                    style: AppStyle.heading5Medium(color: AppColor.textColor),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ).paddingOnly(top: AppSize.appSize6),
+                      ],
+                    ),
                   ),
                 );
               },
@@ -1584,7 +2095,7 @@ class PropertyDetailsView extends StatelessWidget {
     );
   }
 
-  Widget buildButton() {
+  Widget buildButton( context,propertyDetails) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -1618,6 +2129,9 @@ class PropertyDetailsView extends StatelessWidget {
             // WhatsApp Button
             IconButton(
                 onPressed: () {
+                  String whatsapp = propertyDetails?.propertyAgent?.phone;  // Get dynamically
+                  propertyDetailsController.openWhatsApp(whatsapp);
+
                   // Launch WhatsApp with a predefined message
                   // final whatsappUrl =
                   //     "whatsapp://send?phone=YOUR_PHONE_NUMBER&text=Hello";
@@ -1632,6 +2146,8 @@ class PropertyDetailsView extends StatelessWidget {
             // Call Button
             IconButton(
               onPressed: () {
+                String phoneNumber = propertyDetails?.propertyAgent?.phone; // Get dynamically
+                propertyDetailsController.launchDialer(phoneNumber);
                 // Launch phone dialer
                 // final phoneUrl = "tel:YOUR_PHONE_NUMBER";
                 // launchUrl(Uri.parse(phoneUrl));
@@ -1646,6 +2162,10 @@ class PropertyDetailsView extends StatelessWidget {
             // SMS Button
             IconButton(
               onPressed: () {
+
+                String agentEmail = propertyDetails?.propertyAgent?.email; // Get dynamically
+                propertyDetailsController.openGmail(agentEmail);
+
                 // Launch SMS
                 // final smsUrl = "sms:YOUR_PHONE_NUMBER";
                 // launchUrl(Uri.parse(smsUrl));
@@ -1653,6 +2173,23 @@ class PropertyDetailsView extends StatelessWidget {
               icon: const Icon(
                 Icons.sms,
                 color: Color(0xFFEFECE4),
+                size: 28,
+              ),
+            ),
+
+            IconButton(
+              onPressed: () {
+               // Get.to(() => EnquiryForm());
+                // Passing the propertyId as an argument to the EnquiryForm
+                final int propertyId = propertyDetails?.property?.id ?? 0; // Default to 0 if null
+                Get.to(() => EnquiryForm(), arguments: propertyId);
+
+
+
+              },
+              icon: const Icon(
+                Icons.list_alt, color: Color(0xFFEFECE4),
+                // color: Colors.blue,
                 size: 28,
               ),
             ),

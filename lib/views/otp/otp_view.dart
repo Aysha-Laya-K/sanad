@@ -10,22 +10,25 @@ import 'package:luxury_real_estate_flutter_ui_kit/controller/otp_controller.dart
 import 'package:luxury_real_estate_flutter_ui_kit/model/text_segment_model.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/routes/app_routes.dart';
 import 'package:pinput/pinput.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/controller/login_controller.dart';
 
 class OtpView extends StatelessWidget {
   OtpView({super.key});
 
   OtpController otpController = Get.put(OtpController());
+  LoginController loginController = Get.find<LoginController>();
 
   @override
   Widget build(BuildContext context) {
+    String mobileNumber = Get.arguments ?? "";
     return Scaffold(
       backgroundColor: AppColor.whiteColor,
-      body: buildOTPField(),
+      body: buildOTPField(mobileNumber),
       // bottomNavigationBar: buildTextButton(),
     );
   }
 
-  Widget buildOTPField() {
+  Widget buildOTPField(mobileNumber) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisAlignment: MainAxisAlignment.center,
@@ -41,7 +44,7 @@ class OtpView extends StatelessWidget {
               style: AppStyle.heading4Regular(color: AppColor.descriptionColor),
             ),
             TextSegment(
-              text: AppString.contactNumber,
+              text: "+974 ${mobileNumber}",
               style: AppStyle.heading4Medium(color: AppColor.primaryColor),
             ),
           ],
@@ -102,7 +105,8 @@ class OtpView extends StatelessWidget {
                     style:
                         AppStyle.heading5Medium(color: AppColor.primaryColor),
                     onTap: otpController.countdown.value == AppSize.size0
-                        ? () {
+                        ? () async{
+                      await loginController.sendMobileNumber();
                             otpController.startCountdown();
                           }
                         : null,
@@ -112,13 +116,18 @@ class OtpView extends StatelessWidget {
         ),
         CommonButton(
           onPressed: () {
-            Get.offAllNamed(AppRoutes.bottomBarView);
+            otpController.verifyOtp();
           },
-          child: Text(
-            AppString.verifyButton,
-            style: AppStyle.heading5Medium(color: AppColor.whiteColor),
-          ),
+          child: Obx(() {
+            return otpController.isLoading.value
+                ? CircularProgressIndicator(color: AppColor.whiteColor) // Show loading indicator
+                : Text(
+              AppString.verifyButton,
+              style: AppStyle.heading5Medium(color: AppColor.whiteColor),
+            );
+          }),
         ).paddingOnly(top: AppSize.appSize36),
+
       ],
     ).paddingOnly(left: AppSize.appSize16, right: AppSize.appSize16);
   }

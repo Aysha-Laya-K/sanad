@@ -12,6 +12,7 @@ import 'package:luxury_real_estate_flutter_ui_kit/routes/app_routes.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/views/profile/widgets/delete_account_bottom_sheet.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/views/profile/widgets/finding_us_helpful_bottom_sheet.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/views/profile/widgets/logout_bottom_sheet.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/views/saved/saved_properties_view.dart';
 
 class ProfileView extends StatelessWidget {
   ProfileView({super.key});
@@ -20,8 +21,12 @@ class ProfileView extends StatelessWidget {
   TranslationController translationController =
       Get.put(TranslationController());
 
+
   @override
   Widget build(BuildContext context) {
+    profileController.checkTokenAndFetchProfile();
+
+
     return Scaffold(
       backgroundColor: AppColor.whiteColor,
       appBar: buildAppBar(),
@@ -63,27 +68,94 @@ class ProfileView extends StatelessWidget {
           children: [
             Row(
               children: [
-                Image.asset(
+               /* CircleAvatar(
+                  radius: AppSize.appSize30, // Adjust size as needed
+                  backgroundColor: AppColor.primaryColor, // Set the background color
+                  child: Icon(
+                    Icons.person, // Replace with the icon of your choice
+                    size: AppSize.appSize30, // Adjust icon size as needed
+                    color: AppColor.whiteColor, // Icon color (white in this case)
+                  ),
+                ).paddingOnly(right: AppSize.appSize18),*/
+                /*Image.asset(
                   "assets/images/checkbox.png",
                   // "assets/images/checkbox.png",
                   width: AppSize.appSize68,
-                ).paddingOnly(right: AppSize.appSize16),
-                Obx(() => Text(
+                ).paddingOnly(right: AppSize.appSize16),*/
+                /*Obx(() => Text(
                       translationController.translate(AppString.francisZieme),
                       style: AppStyle.heading3Medium(color: AppColor.textColor),
-                    )),
+                    )),*/
+
+
+                Obx(() {
+                  final user = profileController.userProfile.value;
+                  final userImage = user?.image;
+
+                  return CircleAvatar(
+                    radius: AppSize.appSize30, // Adjust size as needed
+                    backgroundColor: AppColor.primaryColor, // Set the background color
+                    child: userImage != null && userImage.isNotEmpty
+                        ? ClipOval(
+                      child: Image.network(
+                        userImage,
+                        width: AppSize.appSize60, // Adjust width as needed
+                        height: AppSize.appSize60, // Adjust height as needed
+                        fit: BoxFit.cover, // Ensure the image covers the circle
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) {
+                            return child; // If image is loaded, return the image
+                          } else {
+                            return Center(
+                              child: CircularProgressIndicator(
+                                value: loadingProgress.expectedTotalBytes != null
+                                    ? loadingProgress.cumulativeBytesLoaded /
+                                    (loadingProgress.expectedTotalBytes ?? 1)
+                                    : null,
+                                valueColor: AlwaysStoppedAnimation<Color>(AppColor.whiteColor),
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                    )
+                        : Icon(
+                      Icons.person, // Default icon if no image
+                      size: AppSize.appSize30, // Adjust icon size as needed
+                      color: AppColor.whiteColor, // Icon color (white in this case)
+                    ),
+                  );
+                }).paddingOnly(right: AppSize.appSize18),
+
+
+
+
+                Obx(() {
+                  final user = profileController.userProfile.value;
+                  final greetingName = user?.name ?? 'Customer'; // Default to 'Francis' if null
+                  return Text(
+                    greetingName,
+                    style: AppStyle.heading3Medium(color: AppColor.textColor),
+                  );
+                }),
               ],
             ),
-            GestureDetector(
+            Obx(() => profileController.isLoggedIn.value
+                ? GestureDetector(
               onTap: () {
-                Get.toNamed(AppRoutes.editProfileView);
+                Get.toNamed(AppRoutes.editProfileView)?.then((_) {
+                  // Refresh profile data after editing
+                  profileController.checkTokenAndFetchProfile();
+                });
+
+
               },
-              child: Obx(() => Text(
-                    translationController.translate(AppString.editProfile),
-                    style:
-                        AppStyle.heading5Medium(color: AppColor.primaryColor),
-                  )),
-            ),
+              child: Text(
+                translationController.translate(AppString.editProfile),
+                style: AppStyle.heading5Medium(color: AppColor.primaryColor),
+              ),
+            )
+                : Container()),
           ],
         ),
         ListView.builder(
@@ -94,20 +166,28 @@ class ProfileView extends StatelessWidget {
           itemBuilder: (context, index) {
             return GestureDetector(
               onTap: () {
-                if (index == AppSize.size0) {
+                String titleKey = profileController.profileOptionTitleList[index];
+                if (titleKey == AppString.viewResponses) {
                   Get.toNamed(AppRoutes.responsesView);
-                } else if (index == AppSize.size1) {
-                  //  Get.toNamed(AppRoutes.languagesView);
-                } // else if (index == AppSize.size2) {
-                //  Get.toNamed(AppRoutes.communitySettingsView);
-                //}
-                else if (index == AppSize.size2) {
+                } else if (titleKey == AppString.languages) {
+                  Get.toNamed(AppRoutes.languagesView);// Handle languages
+                } else if (titleKey == AppString.shareFeedback) {
                   Get.toNamed(AppRoutes.feedbackView);
-                } else if (index == AppSize.size3) {
+                } else if (titleKey == AppString.areYouFindingUsHelpful) {
                   findingUsHelpfulBottomSheet(context);
-                } else if (index == AppSize.size4) {
+                } else if (titleKey == AppString.login1) {
+                  Get.toNamed(AppRoutes.loginView);
+                }
+                else if (titleKey == AppString.save1) {
+                  Get.toNamed(AppRoutes.savedPropertiesView);
+                }
+                else if (titleKey == AppString.myneeds) {
+                  Get.toNamed(AppRoutes.myNeeds);
+                }
+
+                else if (titleKey == AppString.logout) {
                   logoutBottomSheet(context);
-                } else if (index == AppSize.size5) {
+                } else if (titleKey == AppString.deleteAccount) {
                   deleteAccountBottomSheet(context);
                 }
               },

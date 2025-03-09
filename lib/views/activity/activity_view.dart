@@ -11,11 +11,14 @@ import 'package:luxury_real_estate_flutter_ui_kit/views/activity/services_list.d
 import 'package:luxury_real_estate_flutter_ui_kit/views/activity/widgets/listings_states_bottom_sheet.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/views/activity/widgets/sort_by_listing_bottom_sheet.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/views/home/widget/manage_property_bottom_sheet.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/controller/home_controller.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/routes/app_routes.dart';
 
 class ActivityView extends StatelessWidget {
   ActivityView({super.key});
 
   ActivityController activityController = Get.put(ActivityController());
+  HomeController homeController = Get.put(HomeController());
 
   @override
   Widget build(BuildContext context) {
@@ -85,6 +88,12 @@ class ActivityView extends StatelessWidget {
               controller: activityController.searchListController,
               cursorColor: AppColor.primaryColor,
               style: AppStyle.heading4Regular(color: AppColor.textColor),
+              readOnly: true,
+              onTap: () {
+                Get.toNamed(AppRoutes.searchView);
+
+
+              },
               decoration: InputDecoration(
                 hintText: AppString.searchServices,
                 hintStyle:
@@ -199,18 +208,24 @@ class ActivityView extends StatelessWidget {
                   shrinkWrap: true,
                   padding: const EdgeInsets.only(top: AppSize.appSize26),
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: 3, //activityController.propertyListImage.length,
-                  itemBuilder: (context, index) {
+            itemCount: activityController.serviceTypes.length,
+            itemBuilder: (context, index) {
                     return GestureDetector(
-                      onTap: () {
+                      onTap: () async {
+                        int serviceId = homeController.serviceTypes[index].id;  // Get the service ID
+
+                        print('Service ID: $serviceId');  // Debugging: Print service ID
+
+                        await homeController.fetchServiceList(serviceId);  // Call API with service ID
+
                         Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ServicesList(
-                                serviceName:
-                                    activityController.propertyListTitle[index],
-                              ),
-                            ));
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ServicesList(
+                              serviceName: homeController.serviceTypes[index].name,
+                            ),
+                          ),
+                        );
                       },
                       child: Container(
                         height: MediaQuery.of(context).size.height * 0.14,
@@ -225,8 +240,8 @@ class ActivityView extends StatelessWidget {
                         ),
                         child: Row(
                           children: [
-                            Image.asset(
-                              activityController.propertyListImage[index],
+                            Image.network(
+                              activityController.serviceTypes[index].image,
                               width: AppSize.appSize78,
                             ).paddingOnly(right: AppSize.appSize16),
                             Expanded(
@@ -242,8 +257,7 @@ class ActivityView extends StatelessWidget {
                                           MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text(
-                                          activityController
-                                              .propertyListTitle[index],
+                                          activityController.serviceTypes[index].name,
                                           style: AppStyle.serviceName(
                                               color: AppColor.primaryColor),
                                           // style: AppStyle.heading5SemiBold(

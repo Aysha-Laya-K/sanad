@@ -35,7 +35,7 @@ AppBar buildAppBar() {
           //     color: AppColor.descriptionColor,
           //   ).paddingOnly(right: AppSize.appSize26),
           // ),
-          GestureDetector(
+          /*GestureDetector(
             onTap: () {
               // Get.back();
               // Get.back();
@@ -54,7 +54,7 @@ AppBar buildAppBar() {
               width: AppSize.appSize24,
               color: AppColor.descriptionColor,
             ).paddingOnly(right: AppSize.appSize26),
-          ),
+          ),*/
           // GestureDetector(
           //   onTap: () {
           //     Share.share(AppString.appName);

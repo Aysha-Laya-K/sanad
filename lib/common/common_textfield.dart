@@ -5,19 +5,19 @@ import 'package:luxury_real_estate_flutter_ui_kit/configs/app_size.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/configs/app_style.dart';
 
 class CommonTextField extends StatelessWidget {
-  TextEditingController controller;
-  FocusNode focusNode;
-  bool hasFocus;
-  bool hasInput;
-  String hintText;
-  String labelText;
-  TextInputType? keyboardType;
-  List<TextInputFormatter>? inputFormatters;
-  Function()? onTapCountryPicker;
-  bool readOnly = false;
-  BoxBorder? border;
-  TextStyle? labelStyle;
-  TextStyle? textfieldStyle;
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final bool hasFocus;
+  final bool hasInput;
+  final String hintText;
+  final String labelText;
+  final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
+  final Function()? onTapCountryPicker;
+  final bool readOnly;
+  final BoxBorder? border;
+  final TextStyle? labelStyle;
+  final TextStyle? textfieldStyle;
 
   CommonTextField({
     super.key,
@@ -102,3 +102,4 @@ class CommonTextField extends StatelessWidget {
     );
   }
 }
+

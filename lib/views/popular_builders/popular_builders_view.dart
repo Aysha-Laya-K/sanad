@@ -11,15 +11,18 @@ import 'package:luxury_real_estate_flutter_ui_kit/gen/assets.gen.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/routes/app_routes.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/views/activity/service_detail_screen.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/model/agent_model.dart';
 
 class PopularBuildersView extends StatelessWidget {
   PopularBuildersView({super.key});
+  final agent = Get.arguments as AgentData;
 
   PopularBuildersController popularBuildersController =
       Get.put(PopularBuildersController());
 
   @override
   Widget build(BuildContext context) {
+
     var querySize = MediaQuery.of(context).size;
     popularBuildersController.isSimilarPropertyLiked.value =
         List<bool>.generate(
@@ -27,7 +30,7 @@ class PopularBuildersView extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColor.whiteColor,
       appBar: buildAppBar(),
-      body: buildPopularBuildersList(querySize),
+      body: buildPopularBuildersList(querySize, AgentData),
     );
   }
 
@@ -48,10 +51,10 @@ class PopularBuildersView extends StatelessWidget {
       ),
       leadingWidth: AppSize.appSize40,
       title: Text(
-        AppString.sobhaDevelopers,
+       " Agent Details",
         style: AppStyle.heading4Medium(color: AppColor.textColor),
       ),
-      actions: [
+    /*  actions: [
         GestureDetector(
           onTap: () {
             Get.toNamed(AppRoutes.searchView);
@@ -88,11 +91,11 @@ class PopularBuildersView extends StatelessWidget {
             width: AppSize.appSize24,
           ).paddingOnly(right: AppSize.appSize16),
         ),
-      ],
+      ],*/
     );
   }
 
-  Widget buildPopularBuildersList(Size querySize) {
+  Widget buildPopularBuildersList(Size querySize, AgentData) {
     HomeController homeController = Get.put(HomeController());
     return SingleChildScrollView(
       padding: const EdgeInsets.only(bottom: AppSize.appSize20),
@@ -125,7 +128,7 @@ class PopularBuildersView extends StatelessWidget {
                         width: AppSize.appSize48,
                       ).paddingOnly(right: AppSize.appSize10),
                       Text(
-                        AppString.sobhaDevelopers,
+                        '${agent.name}',
                         style:
                             AppStyle.heading4Medium(color: AppColor.textColor),
                       ),
@@ -139,7 +142,7 @@ class PopularBuildersView extends StatelessWidget {
                       width: AppSize.appSize20,
                     ).paddingOnly(right: AppSize.appSize6),
                     Text(
-                      AppString.sobhaUser,
+                      '${agent.name}',
                       style: AppStyle.heading5Regular(
                           color: AppColor.primaryColor),
                     ),
@@ -152,7 +155,7 @@ class PopularBuildersView extends StatelessWidget {
                       width: AppSize.appSize20,
                     ).paddingOnly(right: AppSize.appSize6),
                     Text(
-                      AppString.sobhaContact,
+                      '${agent.phone}',
                       style: AppStyle.heading5Regular(
                           color: AppColor.primaryColor),
                     ),
@@ -165,7 +168,7 @@ class PopularBuildersView extends StatelessWidget {
                       width: AppSize.appSize20,
                     ).paddingOnly(right: AppSize.appSize6),
                     Text(
-                      AppString.sobhaEmail,
+                      '${agent.email}',
                       style: AppStyle.heading5Regular(
                           color: AppColor.primaryColor),
                     ),
@@ -309,7 +312,7 @@ class PopularBuildersView extends StatelessWidget {
           //     },
           //   ),
           // ).paddingOnly(top: AppSize.appSize16),
-          Row(
+         /* Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
@@ -338,11 +341,11 @@ class PopularBuildersView extends StatelessWidget {
               itemBuilder: (context, index) {
                 return GestureDetector(
                   onTap: () {
-                    Navigator.push(
+                   /* Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => ServiceDetailScreen(),
-                        ));
+                        ));*/
                   },
                   child: Stack(
                     children: [
@@ -415,7 +418,7 @@ class PopularBuildersView extends StatelessWidget {
                 );
               },
             ),
-          ).paddingOnly(top: AppSize.appSize16),
+          ).paddingOnly(top: AppSize.appSize16),*/
           // Text(
           //   AppString.upcomingProject,
           //   style: AppStyle.heading3SemiBold(color: AppColor.textColor),

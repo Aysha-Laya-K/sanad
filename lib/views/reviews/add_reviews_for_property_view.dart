@@ -13,6 +13,7 @@ class AddReviewsForPropertyView extends StatelessWidget {
   AddReviewsForPropertyView({super.key});
 
   AddReviewsForPropertyController addReviewsForPropertyController = Get.put(AddReviewsForPropertyController());
+  final int propertyId = Get.arguments ?? 0;
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +33,7 @@ class AddReviewsForPropertyView extends StatelessWidget {
         padding: const EdgeInsets.only(left: AppSize.appSize16),
         child: GestureDetector(
           onTap: () {
-            Get.back();
+            Get.back(result: propertyId);
           },
           child: Image.asset(
             Assets.images.backArrow.path,
@@ -51,7 +52,7 @@ class AddReviewsForPropertyView extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
+        /*Container(
           padding: const EdgeInsets.all(AppSize.appSize16),
           decoration: BoxDecoration(
             color: AppColor.backgroundColor,
@@ -81,12 +82,12 @@ class AddReviewsForPropertyView extends StatelessWidget {
               ),
             ],
           ),
-        ),
-        RatingBar(
-          initialRating: AppSize.appSize3,
+        ),*/
+        /*Obx(() => RatingBar(
+          initialRating: addReviewsForPropertyController.rating.value,
           direction: Axis.horizontal,
           allowHalfRating: true,
-          itemCount: AppSize.size5,
+          itemCount: 5,
           ratingWidget: RatingWidget(
             full: Image.asset(Assets.images.ratingStar.path),
             half: Image.asset(Assets.images.ratingStar.path),
@@ -96,9 +97,43 @@ class AddReviewsForPropertyView extends StatelessWidget {
           itemSize: AppSize.appSize30,
           itemPadding: const EdgeInsets.only(right: AppSize.appSize16),
           onRatingUpdate: (rating) {
-
+            addReviewsForPropertyController.updateRating(rating);
           },
-        ).paddingOnly(top: AppSize.appSize26),
+        ))*/
+
+
+        Obx(() => RatingBar(
+          initialRating: addReviewsForPropertyController.rating.value,
+          direction: Axis.horizontal,
+          allowHalfRating: false,  // Disable half ratings
+          itemCount: 5,
+          ratingWidget: RatingWidget(
+            full: Icon(
+              Icons.star,
+              color: Color(0xFFFFA500),  // Static orange-yellow color for full star
+              size: AppSize.appSize30,
+            ),
+            half: Icon(
+              Icons.star_border,  // Dummy icon to satisfy the half parameter
+              color: Colors.transparent,  // Transparent color, as half rating is not used
+              size: AppSize.appSize30,
+            ),
+            empty: Icon(
+              Icons.star_border,
+              color: Color(0xFFFFA500),  // Grey color for empty star
+              size: AppSize.appSize30,
+            ),
+          ),
+          glow: false,
+          itemSize: AppSize.appSize30,
+          itemPadding: const EdgeInsets.only(right: AppSize.appSize16),
+          onRatingUpdate: (rating) {
+            addReviewsForPropertyController.updateRating(rating);
+          },
+        ))
+
+
+            .paddingOnly(top: AppSize.appSize26),
         TextFormField(
           controller: addReviewsForPropertyController.writeAReviewController,
           cursorColor: AppColor.primaryColor,
@@ -142,7 +177,8 @@ class AddReviewsForPropertyView extends StatelessWidget {
       ),
       child: CommonButton(
         onPressed: () {
-          Get.back();
+          //Get.back(result: propertyId);
+          addReviewsForPropertyController.submitReview(propertyId);
         },
         backgroundColor: AppColor.primaryColor,
         child: Text(

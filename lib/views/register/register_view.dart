@@ -23,6 +23,7 @@ class RegisterView extends StatelessWidget {
   RegisterController registerController = Get.put(RegisterController());
   RegisterCountryPickerController registerCountryPickerController =
       Get.put(RegisterCountryPickerController());
+  String mobileNumber = Get.arguments ?? "";
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +31,7 @@ class RegisterView extends StatelessWidget {
       children: [
         Scaffold(
           backgroundColor: AppColor.whiteColor,
-          body: buildRegisterFields(context),
+          body: buildRegisterFields(context,  mobileNumber),
           bottomNavigationBar: buildTextButton(),
         ),
         const CommonStatusBar(),
@@ -38,7 +39,8 @@ class RegisterView extends StatelessWidget {
     );
   }
 
-  Widget buildRegisterFields(BuildContext context) {
+  Widget buildRegisterFields(BuildContext context,  String mobileNumber) {
+    print("Received mobile number: $mobileNumber");
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.only(bottom: AppSize.appSize10),
@@ -61,7 +63,7 @@ class RegisterView extends StatelessWidget {
                   hintText: AppString.fullName,
                   labelText: AppString.fullName,
                 )),
-            Obx(() => Container(
+          /*  Obx(() => Container(
                   padding: EdgeInsets.only(
                     top: registerController.hasPhoneNumberFocus.value ||
                             registerController.hasPhoneNumberInput.value
@@ -210,7 +212,7 @@ class RegisterView extends StatelessWidget {
                       ),
                     ],
                   ),
-                )).paddingOnly(top: AppSize.appSize16),
+                )).paddingOnly(top: AppSize.appSize16),*/
             Obx(() => CommonTextField(
                   controller: registerController.emailController,
                   focusNode: registerController.emailFocusNode,
@@ -276,33 +278,45 @@ class RegisterView extends StatelessWidget {
                   child: CommonRichText(
                     segments: [
                       TextSegment(
-                        text: AppString.terms1,
-                        style: AppStyle.heading6Regular(
-                            color: AppColor.descriptionColor),
+                        text: 'I agree to the ',
+                        style: AppStyle.heading6Regular(color: AppColor.descriptionColor),
                       ),
                       TextSegment(
-                        text: AppString.terms2,
-                        style: AppStyle.heading6Regular(
-                            color: AppColor.primaryColor),
+                        text: 'Terms and Conditions',
+                        style: AppStyle.heading6Regular(color: AppColor.primaryColor),
+                        onTap: () {
+                          Get.toNamed(AppRoutes.termsconditionsView);
+                          // Handle the Terms and Conditions click action
+                        },
                       ),
                       TextSegment(
-                        text: AppString.terms3,
-                        style: AppStyle.heading6Regular(
-                            color: AppColor.descriptionColor),
+                        text: ' and ',
+                        style: AppStyle.heading6Regular(color: AppColor.descriptionColor),
                       ),
                       TextSegment(
-                        text: AppString.terms4,
-                        style: AppStyle.heading6Regular(
-                            color: AppColor.primaryColor),
+                        text: 'Privacy Policy',
+                        style: AppStyle.heading6Regular(color: AppColor.primaryColor),
+                        onTap: () {
+                          Get.toNamed(AppRoutes.privacyPolicyView);
+
+                          // Handle the Privacy Policy click action
+                        },
+                      ),
+                      TextSegment(
+                        text: ' to be contacted via SMS, email, etc., by luxury and its partners regarding similar properties.',
+                        style: AppStyle.heading6Regular(color: AppColor.descriptionColor),
                       ),
                     ],
                   ),
                 ),
+
               ],
             ).paddingOnly(top: AppSize.appSize16),
             CommonButton(
-              onPressed: () {
-                otpVerificationBottomSheet(context);
+              onPressed:   () {
+               // otpVerificationBottomSheet(context);
+               registerController.registerUser( mobileNumber);
+
               },
               child: Text(
                 AppString.continueButton,
