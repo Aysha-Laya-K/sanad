@@ -94,6 +94,8 @@ class PropertyDetailsController extends GetxController {
   }
 
 
+
+
   void launchDialer(String phoneNumber) async {
     final Uri phoneUri = Uri(scheme: 'tel', path: '+974$phoneNumber');
     if (await canLaunchUrl(phoneUri)) {

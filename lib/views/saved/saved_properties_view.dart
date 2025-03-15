@@ -14,6 +14,7 @@ import 'package:luxury_real_estate_flutter_ui_kit/configs/share_pref.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/model/wishlist_model.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:luxury_real_estate_flutter_ui_kit/controller/home_controller.dart';
 
 
 class SavedPropertiesView extends StatefulWidget {
@@ -24,6 +25,7 @@ class SavedPropertiesView extends StatefulWidget {
 }
 
 class _SavedPropertiesViewState extends State<SavedPropertiesView> {
+  HomeController homeController = Get.put(HomeController());
   SavedPropertiesController savedPropertiesController =
   Get.put(SavedPropertiesController());
   RxMap<int, bool> isSavedMap = RxMap<int, bool>();
@@ -123,96 +125,114 @@ class _SavedPropertiesViewState extends State<SavedPropertiesView> {
   }
 
   Widget buildSavedPropertyList() {
-    final token = UserTypeManager.getToken();
+    return GetBuilder<HomeController>(
+        builder: (homeController) {
+          final token = UserTypeManager.getToken();
 
-    return Obx(() {
-      if (token == null ) {
-        // Show message if token is not available
-        return const Center(
-          child: Text(
-            "No saved properties",
-            textAlign: TextAlign.center,
-            // This ensures the text is centered
-          ),
-        );
-      }
+          return Obx(() {
+            if (token == null) {
+              // If the user is not logged in, show a message
+              return const Center(
+                child: Text(
+                  "Please log in to view saved properties",
+                  textAlign: TextAlign.center,
+                ),
+              );
+            }
 
-      // Check if wishlistResponse is available
-      final wishlist = savedPropertiesController.wishlistResponse.value;
+            // Check if the wishlist is still loading
+            if (savedPropertiesController.wishlistResponse.value == null) {
+              // Show a loading indicator while the data is being fetched
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
+            }
 
-      if (wishlist == null || wishlist.properties.data.isEmpty) {
-        // Show message if the API data is null or empty
-        return const Center(child: Text("No saved properties"));
-      }
+            // Check if the wishlist is empty
+            final wishlist = savedPropertiesController.wishlistResponse.value;
+            if (wishlist == null || wishlist.properties.data.isEmpty) {
+              // Show a message if the wishlist is empty
+              return const Center(
+                child: Text(
+                  "No saved properties",
+                  textAlign: TextAlign.center,
+                ),
+              );
+            }
 
+            // Access the list of properties from the API response.
+            final propertyList = wishlist.properties.data;
 
-      // Access the list of properties from the API response.
-      final propertyList = wishlist.properties.data;
+            return ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: propertyList.length,
+              itemBuilder: (context, index) {
+                final property = propertyList[index];
+                if (!isSavedMap.containsKey(property.id)) {
+                  isSavedMap[property.id] = false;
+                }
 
-      return ListView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: propertyList.length,
-        itemBuilder: (context, index) {
-          final property = propertyList[index];
-          if (!isSavedMap.containsKey(property.id)) {
-            isSavedMap[property.id] = false;
-          }
+                return GestureDetector(
+                  onTap: () async {
+                    final int propertyId = property.id;
+                    print('Tapped on property with ID: $propertyId');
+                    Get.toNamed(
+                        AppRoutes.propertyDetailsView, arguments: propertyId);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(AppSize.appSize10),
+                    margin: const EdgeInsets.only(bottom: AppSize.appSize16),
+                    decoration: BoxDecoration(
+                      color: AppColor.secondaryColor,
+                      borderRadius: BorderRadius.circular(AppSize.appSize12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Stack(
+                          children: [
+                            Image.network(
+                              property.thumbnailImage,
+                              width: double.infinity,
+                              height: 200,
+                              fit: BoxFit.cover,
+                              loadingBuilder: (BuildContext context,
+                                  Widget child,
+                                  ImageChunkEvent? loadingProgress) {
+                                if (loadingProgress == null) {
+                                  return child; // Image loaded
+                                } else {
+                                  return Center(
+                                    child: CircularProgressIndicator(
+                                      value: loadingProgress
+                                          .expectedTotalBytes !=
+                                          null
+                                          ? loadingProgress
+                                          .cumulativeBytesLoaded /
+                                          (loadingProgress.expectedTotalBytes ??
+                                              1)
+                                          : null,
+                                    ),
+                                  ); // Loading indicator while the image loads
+                                }
+                              },
+                              errorBuilder: (context, error, stackTrace) {
+                                return Icon(Icons.error); // Fallback for errors
+                              },
+                            ),
+                            Positioned(
+                              right: AppSize.appSize6,
+                              top: AppSize.appSize6,
+                              child: GestureDetector(
+                                onTap: () async {
+                                  await homeController.removeFromWishlist(
+                                      property.id, isFromSavedPage: true);
 
-          return GestureDetector(
-            onTap: () async {
-              final int propertyId = property.id;
-              print('Tapped on property with ID: $propertyId');
-              Get.toNamed(AppRoutes.propertyDetailsView, arguments: propertyId);
+                                  // await homeController.removeFromWishlist(property.id);
 
-
-
-
-            },
-            child: Container(
-              padding: const EdgeInsets.all(AppSize.appSize10),
-              margin: const EdgeInsets.only(bottom: AppSize.appSize16),
-              decoration: BoxDecoration(
-                color: AppColor.secondaryColor,
-                borderRadius: BorderRadius.circular(AppSize.appSize12),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Stack(
-                    children: [
-                      Image.network(
-                        property.thumbnailImage,
-                        width: double.infinity,
-                        height: 200,
-                        fit: BoxFit.cover,
-                        loadingBuilder: (BuildContext context, Widget child,
-                            ImageChunkEvent? loadingProgress) {
-                          if (loadingProgress == null) {
-                            return child; // Image loaded
-                          } else {
-                            return Center(
-                              child: CircularProgressIndicator(
-                                value: loadingProgress.expectedTotalBytes !=
-                                    null
-                                    ? loadingProgress.cumulativeBytesLoaded /
-                                    (loadingProgress.expectedTotalBytes ??
-                                        1)
-                                    : null,
-                              ),
-                            ); // Loading indicator while the image loads
-                          }
-                        },
-                        errorBuilder: (context, error, stackTrace) {
-                          return Icon(Icons.error); // Fallback for errors
-                        },
-                      ),
-                      Positioned(
-                        right: AppSize.appSize6,
-                        top: AppSize.appSize6,
-                        child: GestureDetector(
-                          onTap: () async {
-                            setState(() {
+                                  setState(() {});
+                                  /*setState(() {
                               isSavedMap[property.id] = !(isSavedMap[property.id] ?? false);
                             });
 
@@ -242,190 +262,199 @@ class _SavedPropertiesViewState extends State<SavedPropertiesView> {
                               }
                             } else {
                               print('Token not found');
-                            }
+                            }*/
 
-                            // Handle bookmark toggle logic
-                          },
-                          child: Container(
-                            width: AppSize.appSize32,
-                            height: AppSize.appSize32,
-                            decoration: BoxDecoration(
-                              color: AppColor.whiteColor.withOpacity(0.5),
-                              borderRadius: BorderRadius.circular(
-                                  AppSize.appSize6),
+                                  // Handle bookmark toggle logic
+                                },
+                                child: Container(
+                                  width: AppSize.appSize32,
+                                  height: AppSize.appSize32,
+                                  decoration: BoxDecoration(
+                                    color: AppColor.whiteColor.withOpacity(0.5),
+                                    borderRadius: BorderRadius.circular(
+                                        AppSize.appSize6),
+                                  ),
+                                  child: Obx(() {
+                                    final isSaved = homeController
+                                        .isSavedMap[property.id] ?? false;
+                                    return Icon(
+                                      /*isSaved ? Icons.bookmark :*/ Icons
+                                          .bookmark,
+                                      size: AppSize.appSize20,
+                                      color: AppColor.primaryColor,
+                                      /*color: isSaved
+                                          ? AppColor.primaryColor
+                                          : AppColor.primaryColor.withOpacity(
+                                          0.6),*/
+                                    );
+                                  }),
+                                ),
+                              ),
                             ),
-                            child: Icon(
-                              isSavedMap[property.id] == true
-                                  ? Icons.bookmark_border
-                                  : Icons.bookmark,
-                              size: AppSize.appSize20,
-                              color: isSavedMap[property.id] == true
-                                  ? AppColor.primaryColor.withOpacity(0.6)
-                                  : AppColor.primaryColor,
-                            ),
+                          ],
+                        ),
+                        Padding(
+                          padding: EdgeInsets.only(top: AppSize.appSize16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                property.title, // Dynamic title
+                                style: AppStyle.heading5SemiBold(
+                                    color: AppColor.textColor),
+                              ),
+                              Text(
+                                property.slug, // Dynamic title
+                                style: AppStyle.heading5SemiBold(
+                                    color: AppColor.textColor),
+                              ),
+                              Text(
+                                property.address, // Dynamic address
+                                style: AppStyle.heading5Regular(
+                                    color: AppColor.descriptionColor),
+                              ).paddingOnly(top: AppSize.appSize6),
+                            ],
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  Padding(
-                    padding: EdgeInsets.only(top: AppSize.appSize16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          property.title, // Dynamic title
-                          style: AppStyle.heading5SemiBold(
-                              color: AppColor.textColor),
+                        Padding(
+                          padding: EdgeInsets.only(top: AppSize.appSize16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                "QAR ${property.price}", // Dynamic price
+                                style: AppStyle.heading5Medium(
+                                    color: AppColor.primaryColor),
+                              ),
+                              Row(
+                                children: [
+                                  Text(
+                                    property.totalRating.toString(),
+                                    // Dynamic rating
+                                    style: AppStyle.heading5Medium(
+                                        color: AppColor.primaryColor),
+                                  ).paddingOnly(right: AppSize.appSize6),
+                                  Icon(Icons.star, color: Colors.amber,
+                                      size: AppSize.appSize18),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
-                        Text(
-                          property.slug, // Dynamic title
-                          style: AppStyle.heading5SemiBold(
-                              color: AppColor.textColor),
-                        ),
-                        Text(
-                          property.address, // Dynamic address
-                          style: AppStyle.heading5Regular(
-                              color: AppColor.descriptionColor),
-                        ).paddingOnly(top: AppSize.appSize6),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.only(top: AppSize.appSize16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          "QAR ${property.price}", // Dynamic price
-                          style: AppStyle.heading5Medium(
-                              color: AppColor.primaryColor),
-                        ),
+                        Divider(
+                          color: AppColor.descriptionColor.withOpacity(0.3),
+                          height: AppSize.appSize0,
+                        ).paddingOnly(
+                            top: AppSize.appSize16, bottom: AppSize.appSize16),
                         Row(
                           children: [
-                            Text(
-                              property.totalRating.toString(), // Dynamic rating
-                              style: AppStyle.heading5Medium(
-                                  color: AppColor.primaryColor),
-                            ).paddingOnly(right: AppSize.appSize6),
-                            Icon(Icons.star, color: Colors.amber,
-                                size: AppSize.appSize18),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  Divider(
-                    color: AppColor.descriptionColor.withOpacity(0.3),
-                    height: AppSize.appSize0,
-                  ).paddingOnly(
-                      top: AppSize.appSize16, bottom: AppSize.appSize16),
-                  Row(
-                    children: [
-                      // Bathroom Container
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: AppSize.appSize6,
-                          horizontal: AppSize.appSize14,
-                        ),
-                        margin: const EdgeInsets.only(right: AppSize.appSize16),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(
-                              AppSize.appSize12),
-                          border: Border.all(
-                            color: AppColor.primaryColor,
-                            width: AppSize.appSizePoint50,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.bathtub, color: AppColor.primaryColor,
-                                size: AppSize.appSize18),
-                            SizedBox(width: 6),
-                            Text(
-                              property.totalBathroom,
-                              style: AppStyle.heading5Medium(
-                                  color: AppColor.textColor),
+                            // Bathroom Container
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: AppSize.appSize6,
+                                horizontal: AppSize.appSize14,
+                              ),
+                              margin: const EdgeInsets.only(
+                                  right: AppSize.appSize16),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(
+                                    AppSize.appSize12),
+                                border: Border.all(
+                                  color: AppColor.primaryColor,
+                                  width: AppSize.appSizePoint50,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.bathtub,
+                                      color: AppColor.primaryColor,
+                                      size: AppSize.appSize18),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    property.totalBathroom,
+                                    style: AppStyle.heading5Medium(
+                                        color: AppColor.textColor),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // Bedroom Container
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: AppSize.appSize6,
+                                horizontal: AppSize.appSize14,
+                              ),
+                              margin: const EdgeInsets.only(
+                                  right: AppSize.appSize16),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(
+                                    AppSize.appSize12),
+                                border: Border.all(
+                                  color: AppColor.primaryColor,
+                                  width: AppSize.appSizePoint50,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.bed, color: AppColor.primaryColor,
+                                      size: AppSize.appSize18),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    property.totalBedroom,
+                                    style: AppStyle.heading5Medium(
+                                        color: AppColor.textColor),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // BHK Container
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: AppSize.appSize6,
+                                horizontal: AppSize.appSize14,
+                              ),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(
+                                    AppSize.appSize12),
+                                border: Border.all(
+                                  color: AppColor.primaryColor,
+                                  width: AppSize.appSizePoint50,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.bedroom_parent_outlined,
+                                      color: AppColor.primaryColor,
+                                      size: AppSize.appSize18),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    "${property.totalBedroom} BHK",
+                                    style: AppStyle.heading5Medium(
+                                        color: AppColor.textColor),
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
-                      ),
-                      // Bedroom Container
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: AppSize.appSize6,
-                          horizontal: AppSize.appSize14,
-                        ),
-                        margin: const EdgeInsets.only(right: AppSize.appSize16),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(
-                              AppSize.appSize12),
-                          border: Border.all(
-                            color: AppColor.primaryColor,
-                            width: AppSize.appSizePoint50,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.bed, color: AppColor.primaryColor,
-                                size: AppSize.appSize18),
-                            SizedBox(width: 6),
-                            Text(
-                              property.totalBedroom,
-                              style: AppStyle.heading5Medium(
-                                  color: AppColor.textColor),
-                            ),
-                          ],
-                        ),
-                      ),
-                      // BHK Container
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: AppSize.appSize6,
-                          horizontal: AppSize.appSize14,
-                        ),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(
-                              AppSize.appSize12),
-                          border: Border.all(
-                            color: AppColor.primaryColor,
-                            width: AppSize.appSizePoint50,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.bedroom_parent_outlined,
-                                color: AppColor.primaryColor,
-                                size: AppSize.appSize18),
-                            SizedBox(width: 6),
-                            Text(
-                              "${property.totalBedroom} BHK",
-                              style: AppStyle.heading5Medium(
-                                  color: AppColor.textColor),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  IntrinsicHeight(
-                    child: Row(
-                      children: [
-                        CommonRichText(
-                          segments: [
-                            TextSegment(
-                              text: "${property.totalArea} sqft",
-                              style: AppStyle.heading5Regular(
-                                  color: AppColor.textColor),
-                            ),
-                            TextSegment(
-                              text: AppString.builtUp,
-                              style: AppStyle.heading7Regular(
-                                  color: AppColor.descriptionColor),
-                            ),
-                          ],
-                        ),
-                        /*const VerticalDivider(
+                        IntrinsicHeight(
+                          child: Row(
+                            children: [
+                              CommonRichText(
+                                segments: [
+                                  TextSegment(
+                                    text: "${property.totalArea} sqft",
+                                    style: AppStyle.heading5Regular(
+                                        color: AppColor.textColor),
+                                  ),
+                                  TextSegment(
+                                    text: AppString.builtUp,
+                                    style: AppStyle.heading7Regular(
+                                        color: AppColor.descriptionColor),
+                                  ),
+                                ],
+                              ),
+                              /*const VerticalDivider(
                           color: AppColor.descriptionColor,
                           width: AppSize.appSize0,
                           indent: AppSize.appSize2,
@@ -446,15 +475,17 @@ class _SavedPropertiesViewState extends State<SavedPropertiesView> {
                             ),
                           ],
                         ),*/
+                            ],
+                          ).paddingOnly(top: AppSize.appSize10),
+                        ),
                       ],
-                    ).paddingOnly(top: AppSize.appSize10),
+                    ),
                   ),
-                ],
-              ),
-            ),
-          );
-        },
-      ).paddingOnly(left: AppSize.appSize16, right: AppSize.appSize16);
-    });
+                );
+              },
+            ).paddingOnly(left: AppSize.appSize16, right: AppSize.appSize16);
+          });
+        }
+    );
   }
 }

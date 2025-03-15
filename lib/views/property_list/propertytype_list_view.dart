@@ -25,9 +25,14 @@ import 'package:luxury_real_estate_flutter_ui_kit/routes/app_routes.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/controller/property_details_controller.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/configs/share_pref.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/routes/app_routes.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/controller/home_controller.dart';
 
 class PropertyTypeListView extends StatefulWidget {
-  PropertyTypeListView({super.key});
+
+  final String propertyTypeId;
+  final String purpose;
+
+  PropertyTypeListView({super.key, required this.propertyTypeId, required this.purpose});
 
   @override
   State<PropertyTypeListView> createState() => _PropertyTypeListViewState();
@@ -37,31 +42,41 @@ class _PropertyTypeListViewState extends State<PropertyTypeListView> {
   RxMap<int, bool> isSavedMap = RxMap<int, bool>();
   PropertyTypeListController propertyTypeListController =
   Get.put(PropertyTypeListController());
+  HomeController homeController = Get.put(HomeController());
 
   PropertyDetailsController propertyController = Get.put(PropertyDetailsController());
-
   final SearchFilterController searchFilterController = Get.put(SearchFilterController());
+  @override
+  void initState() {
+    super.initState();
+    // Fetch properties when the page is loaded
+    propertyTypeListController.fetchTypeProperties(id: widget.propertyTypeId, purpose: widget.purpose);
+  }
 
   //Rx<ApiResponse?> propertyDetails = Rx<ApiResponse?>(null);
   @override
   Widget build(BuildContext context) {
 
 
-    final TypeResponse typeResponse = Get.arguments;
+    final TypeResponse? typeResponse = propertyTypeListController.typeResponse.value;
+    /*propertyTypeListController.isPropertyLiked.value =
+    List<bool>.generate(typeResponse.data.length, (index) => false);*/
 
-    propertyTypeListController.isPropertyLiked.value =
-    List<bool>.generate(typeResponse.data.length, (index) => false);
     // Print to check if the response is received correctly
-    print('PropertyTypeListView received typeResponse: $typeResponse');
-    print('Number of properties in the response: ${typeResponse.data.length}');
-
-
     // Print the received response in the terminal
 
     return Scaffold(
       backgroundColor: AppColor.whiteColor,
       appBar: buildAppBar(),
-      body: buildPropertyList(context, typeResponse),
+      body: Obx(() {
+        if (propertyTypeListController.isLoading.value) {
+          return Center(child: CircularProgressIndicator());
+        } else if (propertyTypeListController.typeResponse.value == null) {
+          return Center(child: Text("No data available"));
+        } else {
+          return buildPropertyList(context, propertyTypeListController.typeResponse.value!);
+        }
+      }),
     );
   }
 
@@ -120,85 +135,88 @@ class _PropertyTypeListViewState extends State<PropertyTypeListView> {
   }
 
   Widget buildPropertyList(BuildContext context,TypeResponse typeResponse ) {
-    return SingleChildScrollView(
-      physics: const ClampingScrollPhysics(),
-      padding: const EdgeInsets.only(bottom: AppSize.appSize10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppSize.appSize12),
-              color: AppColor.whiteColor,
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black12,
-                  spreadRadius: AppSize.appSizePoint1,
-                  blurRadius: AppSize.appSize2,
-                ),
-              ],
-            ),
-            child: TextFormField(
-              controller: propertyTypeListController.searchController,
-              cursorColor: AppColor.primaryColor,
-              style: AppStyle.heading4Regular(color: AppColor.textColor),
-              readOnly: true,
-              onTap: () {
-                Get.toNamed(AppRoutes.searchView);
-
-
-              },
-              decoration: InputDecoration(
-                contentPadding: const EdgeInsets.only(
-                  top: AppSize.appSize16,
-                  bottom: AppSize.appSize16,
-                ),
-                hintText: AppString.searchPropertyText,
-                hintStyle:
-                AppStyle.heading4Regular(color: AppColor.descriptionColor),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppSize.appSize12),
-                  borderSide: BorderSide.none,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppSize.appSize12),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppSize.appSize12),
-                  borderSide: BorderSide.none,
-                ),
-                prefixIcon: Padding(
-                  padding: const EdgeInsets.only(
-                    left: AppSize.appSize16,
-                    right: AppSize.appSize16,
+    return GetBuilder<HomeController>(
+        builder: (homeController) {
+          return SingleChildScrollView(
+            physics: const ClampingScrollPhysics(),
+            padding: const EdgeInsets.only(bottom: AppSize.appSize10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(AppSize.appSize12),
+                    color: AppColor.whiteColor,
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black12,
+                        spreadRadius: AppSize.appSizePoint1,
+                        blurRadius: AppSize.appSize2,
+                      ),
+                    ],
                   ),
-                  child: Image.asset(
-                    Assets.images.search.path,
+                  child: TextFormField(
+                    controller: propertyTypeListController.searchController,
+                    cursorColor: AppColor.primaryColor,
+                    style: AppStyle.heading4Regular(color: AppColor.textColor),
+                    readOnly: true,
+                    onTap: () {
+                      Get.toNamed(AppRoutes.searchView);
+                    },
+                    decoration: InputDecoration(
+                      contentPadding: const EdgeInsets.only(
+                        top: AppSize.appSize16,
+                        bottom: AppSize.appSize16,
+                      ),
+                      hintText: AppString.searchPropertyText,
+                      hintStyle:
+                      AppStyle.heading4Regular(
+                          color: AppColor.descriptionColor),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(AppSize.appSize12),
+                        borderSide: BorderSide.none,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(AppSize.appSize12),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(AppSize.appSize12),
+                        borderSide: BorderSide.none,
+                      ),
+                      prefixIcon: Padding(
+                        padding: const EdgeInsets.only(
+                          left: AppSize.appSize16,
+                          right: AppSize.appSize16,
+                        ),
+                        child: Image.asset(
+                          Assets.images.search.path,
+                        ),
+                      ),
+                      prefixIconConstraints: const BoxConstraints(
+                        maxWidth: AppSize.appSize51,
+                      ),
+                    ),
                   ),
                 ),
-                prefixIconConstraints: const BoxConstraints(
-                  maxWidth: AppSize.appSize51,
-                ),
-              ),
-            ),
-          ),
 
 
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: typeResponse.data.length,
-            itemBuilder: (context, index) {
-              final property = typeResponse.data[index];
-              if (!isSavedMap.containsKey(typeResponse.data[index].id)) {
-                isSavedMap[typeResponse.data[index].id] = false;
-              }// Fetching property details
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: typeResponse.data.length,
+                  itemBuilder: (context, index) {
+                    final property = typeResponse.data[index];
+                    final isSaved = homeController.isSavedMap[property.id] ??
+                        false;
+                    /*if (!isSavedMap.containsKey(typeResponse.data[index].id)) {
+                      isSavedMap[typeResponse.data[index].id] = false;
+                    } */// Fetching property details
 
-              return GestureDetector(
-                onTap: () async {
-                  final int propertyId =typeResponse.data[index].id;
-                  /*print('Tapped on property with ID: $propertyId');
+                    return GestureDetector(
+                      onTap: () async {
+                        final int propertyId = typeResponse.data[index].id;
+                        /*print('Tapped on property with ID: $propertyId');
 
                   // Wait for the API call to finish before proceeding
                   await fetchPropertyDetails(propertyId);
@@ -209,298 +227,275 @@ class _PropertyTypeListViewState extends State<PropertyTypeListView> {
                   Get.toNamed(AppRoutes.propertyDetailsView, arguments: propertyDetails.value);*/
 
 
-
-                  print('Tapped on property with ID: $propertyId');
-                 // await propertyController.fetchPropertyDetails(propertyId); // Fetch details
-                  //Get.toNamed(AppRoutes.propertyDetailsView, arguments: propertyController.propertyDetails.value);
-                  Get.toNamed(AppRoutes.propertyDetailsView, arguments: propertyId);
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(AppSize.appSize10),
-                  margin: const EdgeInsets.only(bottom: AppSize.appSize16),
-                  decoration: BoxDecoration(
-                    color: AppColor.secondaryColor,
-                    borderRadius: BorderRadius.circular(AppSize.appSize12),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Stack(
-                        children: [
-                          Image.network(
-                            typeResponse.data[index].thumbnailImage,
-                            width: double.infinity,
-                            height: 200,
-                            fit: BoxFit.cover,
-                            loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
-                              if (loadingProgress == null) {
-                                return child; // Image loaded
-                              } else {
-                                return Center(
-                                  child: CircularProgressIndicator(
-                                    value: loadingProgress.expectedTotalBytes != null
-                                        ? loadingProgress.expectedTotalBytes != null
-                                        ? loadingProgress.cumulativeBytesLoaded /
-                                        (loadingProgress.expectedTotalBytes ?? 1)
-                                        : null
-                                        : null,
-                                  ),
-                                ); // Loading indicator while the image loads
-                              }
-                            },
-                            errorBuilder: (context, error, stackTrace) {
-                              return Icon(Icons.error); // Fallback for when the image fails to load
-                            },
-                          ),
-                          Positioned(
-                            right: AppSize.appSize6,
-                            top: AppSize.appSize6,
-                            child: GestureDetector(
-                              onTap: () async {
-                                // Check for token before proceeding.
-                                final token = await UserTypeManager.getToken();
-                                if (token == null) {
-                                  // If no token, prompt the user to log in.
-                                  Get.snackbar(
-                                    'Login Required',
-                                    'Please login to add or remove property from wishlist.',
-                                    snackPosition: SnackPosition.TOP,
-                                  );
-                                  Get.toNamed(AppRoutes.loginView);
-                                  return;
-                                }
-
-                                // Toggle the saved state.
-                                bool newState = !isSavedMap[property.id]!;
-                                setState(() {
-                                  isSavedMap[property.id] = newState;
-                                });
-
-                                final int propertyId = property.id;
-                                if (newState) {
-                                  // If saved state is true, call the add-to-wishlist API.
-                                  final url = Uri.parse(
-                                    'https://project.artisans.qa/realestate/api/user/add-to-wishlist/$propertyId',
-                                  );
-                                  try {
-                                    final response = await http.get(
-                                      url,
-                                      headers: {
-                                        'Authorization': 'Bearer $token',
-                                      },
-                                    );
-                                    print('Add-to-Wishlist API Response: ${response.body}');
-                                    print('Property added to wishlist with ID: $propertyId');
-                                  } catch (error) {
-                                    print('Error calling add-to-wishlist API: $error');
-                                    Get.snackbar(
-                                      'Error',
-                                      'Failed to add property to wishlist.',
-                                      snackPosition: SnackPosition.TOP,
-                                    );
-                                  }
-                                } else {
-                                  // If saved state is false, call the remove-wishlist API.
-                                  final url = Uri.parse(
-                                    'https://project.artisans.qa/realestate/api/user/remove-wishlist/$propertyId',
-                                  );
-                                  try {
-                                    final response = await http.delete(
-                                      url,
-                                      headers: {
-                                        'Authorization': 'Bearer $token',
-                                      },
-                                    );
-                                    print('Remove-Wishlist API Response: ${response.body}');
-                                    print('Property removed ID: $propertyId');
-                                  } catch (error) {
-                                    print('Error calling remove-wishlist API: $error');
-                                    Get.snackbar(
-                                      'Error',
-                                      'Failed to remove property from wishlist.',
-                                      snackPosition: SnackPosition.TOP,
-                                    );
-                                  }
-                                }
-                              },
-                              child: Container(
-                                width: AppSize.appSize32,
-                                height: AppSize.appSize32,
-                                decoration: BoxDecoration(
-                                  color: AppColor.whiteColor.withOpacity(0.5),
-                                  borderRadius: BorderRadius.circular(AppSize.appSize6),
-                                  border: Border.all(
-                                    color: Colors.transparent,
-                                    width: 1,
-                                  ),
-                                ),
-                                child: Icon(
-                                  isSavedMap[property.id] == true
-                                      ? Icons.bookmark
-                                      : Icons.bookmark_border,
-                                  size: AppSize.appSize20,
-                                  color: isSavedMap[property.id] == true
-                                      ? AppColor.primaryColor
-                                      : AppColor.primaryColor.withOpacity(0.6),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      Padding(
-                        padding: EdgeInsets.only(top: AppSize.appSize16),
+                        print('Tapped on property with ID: $propertyId');
+                        // await propertyController.fetchPropertyDetails(propertyId); // Fetch details
+                        //Get.toNamed(AppRoutes.propertyDetailsView, arguments: propertyController.propertyDetails.value);
+                        Get.toNamed(AppRoutes.propertyDetailsView,
+                            arguments: propertyId);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(AppSize.appSize10),
+                        margin: const EdgeInsets.only(bottom: AppSize
+                            .appSize16),
+                        decoration: BoxDecoration(
+                          color: AppColor.secondaryColor,
+                          borderRadius: BorderRadius.circular(
+                              AppSize.appSize12),
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              typeResponse.data[index].title, // Dynamic title
-                              style: AppStyle.heading5SemiBold(
-                                  color: AppColor.textColor),
+                            Stack(
+                              children: [
+                                Image.network(
+                                  typeResponse.data[index].thumbnailImage,
+                                  width: double.infinity,
+                                  height: 200,
+                                  fit: BoxFit.cover,
+                                  loadingBuilder: (BuildContext context,
+                                      Widget child,
+                                      ImageChunkEvent? loadingProgress) {
+                                    if (loadingProgress == null) {
+                                      return child; // Image loaded
+                                    } else {
+                                      return Center(
+                                        child: CircularProgressIndicator(
+                                          value: loadingProgress
+                                              .expectedTotalBytes != null
+                                              ? loadingProgress
+                                              .expectedTotalBytes != null
+                                              ? loadingProgress
+                                              .cumulativeBytesLoaded /
+                                              (loadingProgress
+                                                  .expectedTotalBytes ?? 1)
+                                              : null
+                                              : null,
+                                        ),
+                                      ); // Loading indicator while the image loads
+                                    }
+                                  },
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Icon(Icons
+                                        .error); // Fallback for when the image fails to load
+                                  },
+                                ),
+                                Positioned(
+                                  right: AppSize.appSize6,
+                                  top: AppSize.appSize6,
+                                  child: GestureDetector(
+                                    onTap: () async {
+                                      // Check for token before proceeding.
+                                      if (isSaved) {
+                                        await homeController.removeFromWishlist(
+                                            property.id);
+                                      } else {
+                                        await homeController.addToWishlist(
+                                            property.id);
+                                      }
+                                    },
+                                    child: Container(
+                                      width: AppSize.appSize32,
+                                      height: AppSize.appSize32,
+                                      decoration: BoxDecoration(
+                                        color: AppColor.whiteColor.withOpacity(
+                                            0.5),
+                                        borderRadius: BorderRadius.circular(
+                                            AppSize.appSize6),
+                                        border: Border.all(
+                                          color: Colors.transparent,
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Obx(() {
+                                        final isSaved = homeController
+                                            .isSavedMap[property.id] ?? false;
+                                        return   Icon(
+                                        isSaved ? Icons.bookmark : Icons.bookmark_border,
+                                        color: isSaved ? AppColor.primaryColor : AppColor.primaryColor.withOpacity(0.6),
+                                        );
+                                      }),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                            Text(
-                              typeResponse.data[index].slug, // Dynamic title
-                              style: AppStyle.heading5SemiBold(
-                                  color: AppColor.textColor),
+                            Padding(
+                              padding: EdgeInsets.only(top: AppSize.appSize16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    typeResponse.data[index].title,
+                                    // Dynamic title
+                                    style: AppStyle.heading5SemiBold(
+                                        color: AppColor.textColor),
+                                  ),
+                                  Text(
+                                    typeResponse.data[index].slug,
+                                    // Dynamic title
+                                    style: AppStyle.heading5SemiBold(
+                                        color: AppColor.textColor),
+                                  ),
+                                  Text(
+                                    typeResponse.data[index].address,
+                                    // Dynamic address
+                                    style: AppStyle.heading5Regular(
+                                        color: AppColor.descriptionColor),
+                                  ).paddingOnly(top: AppSize.appSize6),
+                                ],
+                              ),
                             ),
-                            Text(
-                              typeResponse.data[index].address, // Dynamic address
-                              style: AppStyle.heading5Regular(
-                                  color: AppColor.descriptionColor),
-                            ).paddingOnly(top: AppSize.appSize6),
-                          ],
-                        ),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.only(top: AppSize.appSize16),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              "QAR ${typeResponse.data[index].price}", // Dynamic price
-                              style: AppStyle.heading5Medium(
-                                  color: AppColor.primaryColor),
+                            Padding(
+                              padding: EdgeInsets.only(top: AppSize.appSize16),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment
+                                    .spaceBetween,
+                                children: [
+                                  Text(
+                                    "QAR ${typeResponse.data[index].price}",
+                                    // Dynamic price
+                                    style: AppStyle.heading5Medium(
+                                        color: AppColor.primaryColor),
+                                  ),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        typeResponse.data[index].totalRating
+                                            .toString(), // Dynamic rating
+                                        style: AppStyle.heading5Medium(
+                                            color: AppColor.primaryColor),
+                                      ).paddingOnly(right: AppSize.appSize6),
+                                      Icon(Icons.star, color: Colors.amber,
+                                          size: AppSize.appSize18),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
+                            Divider(
+                              color: AppColor.descriptionColor.withOpacity(0.3),
+                              height: AppSize.appSize0,
+                            ).paddingOnly(top: AppSize.appSize16,
+                                bottom: AppSize.appSize16),
+
                             Row(
+
                               children: [
-                                Text(
-                                  typeResponse.data[index].totalRating.toString(), // Dynamic rating
-                                  style: AppStyle.heading5Medium(
-                                      color: AppColor.primaryColor),
-                                ).paddingOnly(right: AppSize.appSize6),
-                                Icon(Icons.star, color: Colors.amber, size: AppSize.appSize18),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      Divider(
-                        color: AppColor.descriptionColor.withOpacity(0.3),
-                        height: AppSize.appSize0,
-                      ).paddingOnly(top: AppSize.appSize16, bottom: AppSize.appSize16),
+                                // Bathroom Container
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: AppSize.appSize6,
+                                    horizontal: AppSize.appSize14,
+                                  ),
+                                  margin:
+                                  const EdgeInsets.only(
+                                      right: AppSize.appSize16),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(
+                                        AppSize.appSize12),
+                                    border: Border.all(
+                                      color: AppColor.primaryColor,
+                                      width: AppSize.appSizePoint50,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.bathtub,
+                                          color: AppColor.primaryColor,
+                                          size: AppSize.appSize18),
+                                      SizedBox(width: 6),
+                                      Text(
+                                        typeResponse.data[index].totalBathroom,
+                                        style: AppStyle.heading5Medium(
+                                            color: AppColor.textColor),
+                                      ),
+                                    ],
+                                  ),
+                                ),
 
-                      Row(
+                                // Bedroom Container
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: AppSize.appSize6,
+                                    horizontal: AppSize.appSize14,
+                                  ),
+                                  margin: const EdgeInsets.only(
+                                      right: AppSize.appSize16),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(
+                                        AppSize.appSize12),
+                                    border: Border.all(
+                                      color: AppColor.primaryColor,
+                                      width: AppSize.appSizePoint50,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.bed,
+                                          color: AppColor.primaryColor,
+                                          size: AppSize.appSize18),
+                                      SizedBox(width: 6),
+                                      Text(
+                                        typeResponse.data[index].totalBedroom,
+                                        style: AppStyle.heading5Medium(
+                                            color: AppColor.textColor),
+                                      ),
+                                    ],
+                                  ),
+                                ),
 
-                        children: [
-                          // Bathroom Container
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: AppSize.appSize6,
-                              horizontal: AppSize.appSize14,
-                            ),
-                            margin:
-                            const EdgeInsets.only(right: AppSize.appSize16),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(AppSize.appSize12),
-                              border: Border.all(
-                                color: AppColor.primaryColor,
-                                width: AppSize.appSizePoint50,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.bathtub, color: AppColor.primaryColor, size: AppSize.appSize18),
-                                SizedBox(width: 6),
-                                Text(
-                                  typeResponse.data[index].totalBathroom,
-                                  style: AppStyle.heading5Medium(color: AppColor.textColor),
+                                // BHK Container
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: AppSize.appSize6,
+                                    horizontal: AppSize.appSize14,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(
+                                        AppSize.appSize12),
+                                    border: Border.all(
+                                      color: AppColor.primaryColor,
+                                      width: AppSize.appSizePoint50,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.bedroom_parent_outlined,
+                                          color: AppColor.primaryColor,
+                                          size: AppSize.appSize18),
+                                      SizedBox(width: 6),
+                                      Text(
+                                        "${typeResponse.data[index]
+                                            .totalBedroom} BHK",
+                                        style: AppStyle.heading5Medium(
+                                            color: AppColor.textColor),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ],
                             ),
-                          ),
-
-                          // Bedroom Container
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: AppSize.appSize6,
-                              horizontal: AppSize.appSize14,
-                            ),
-                            margin: const EdgeInsets.only(right: AppSize.appSize16),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(AppSize.appSize12),
-                              border: Border.all(
-                                color: AppColor.primaryColor,
-                                width: AppSize.appSizePoint50,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.bed, color: AppColor.primaryColor, size: AppSize.appSize18),
-                                SizedBox(width: 6),
-                                Text(
-                                  typeResponse.data[index].totalBedroom,
-                                  style: AppStyle.heading5Medium(color: AppColor.textColor),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          // BHK Container
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: AppSize.appSize6,
-                              horizontal: AppSize.appSize14,
-                            ),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(AppSize.appSize12),
-                              border: Border.all(
-                                color: AppColor.primaryColor,
-                                width: AppSize.appSizePoint50,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.bedroom_parent_outlined, color: AppColor.primaryColor, size: AppSize.appSize18),
-                                SizedBox(width: 6),
-                                Text(
-                                  "${typeResponse.data[index].totalBedroom} BHK",
-                                  style: AppStyle.heading5Medium(color: AppColor.textColor),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
 
 
-                      IntrinsicHeight(
-                        child: Row(
-                          children: [
-                            CommonRichText(
-                              segments: [
-                                TextSegment(
-                                  text:  "${typeResponse.data[index].totalArea} sqft",
-                                  style: AppStyle.heading5Regular(
-                                      color: AppColor.textColor),
-                                ),
-                                TextSegment(
-                                  text: AppString.builtUp,
-                                  style: AppStyle.heading7Regular(
-                                      color: AppColor.descriptionColor),
-                                ),
-                              ],
-                            ),
-                            /*const VerticalDivider(
+                            IntrinsicHeight(
+                              child: Row(
+                                children: [
+                                  CommonRichText(
+                                    segments: [
+                                      TextSegment(
+                                        text: "${typeResponse.data[index]
+                                            .totalArea} sqft",
+                                        style: AppStyle.heading5Regular(
+                                            color: AppColor.textColor),
+                                      ),
+                                      TextSegment(
+                                        text: AppString.builtUp,
+                                        style: AppStyle.heading7Regular(
+                                            color: AppColor.descriptionColor),
+                                      ),
+                                    ],
+                                  ),
+                                  /*const VerticalDivider(
                               color: AppColor.descriptionColor,
                               width: AppSize.appSize0,
                               indent: AppSize.appSize2,
@@ -522,55 +517,73 @@ class _PropertyTypeListViewState extends State<PropertyTypeListView> {
                                 ),
                               ],
                             ),*/
-                          ],
-                        ).paddingOnly(top: AppSize.appSize10),
-                      ),
-                      SizedBox(
-                        width: MediaQuery.of(context).size.width,
-                        height: AppSize.appSize35,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            // propertyListController.launchDialer();
-                            String agentPhoneNumber = typeResponse.data[index].agent.phone; // Get dynamically
-                            propertyTypeListController.launchDialer(agentPhoneNumber);
-                          },
-                          style: ButtonStyle(
-                            elevation: WidgetStatePropertyAll(AppSize.appSize0),
-                            shape: WidgetStatePropertyAll(
-                              RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(AppSize.appSize12),
-                                side: const BorderSide(
-                                    color: AppColor.primaryColor,
-                                    width: AppSize.appSizePoint7),
-                              ),
+                                ],
+                              ).paddingOnly(top: AppSize.appSize10),
                             ),
-                            backgroundColor: WidgetStateColor.transparent,
-                          ),
-                          child: Text(
-                            AppString.getCallbackButton,
-                            style: AppStyle.heading6Regular(
-                                color: AppColor.primaryColor),
-                          ),
+                            SizedBox(
+                              width: MediaQuery
+                                  .of(context)
+                                  .size
+                                  .width,
+                              height: AppSize.appSize35,
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  // propertyListController.launchDialer();
+                                  String agentPhoneNumber = typeResponse
+                                      .data[index].agent
+                                      .phone; // Get dynamically
+                                  propertyTypeListController.launchDialer(
+                                      agentPhoneNumber);
+                                },
+                                style: ButtonStyle(
+                                  elevation: WidgetStatePropertyAll(
+                                      AppSize.appSize0),
+                                  shape: WidgetStatePropertyAll(
+                                    RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(
+                                          AppSize.appSize12),
+                                      side: const BorderSide(
+                                          color: AppColor.primaryColor,
+                                          width: AppSize.appSizePoint7),
+                                    ),
+                                  ),
+                                  backgroundColor: WidgetStateColor.transparent,
+                                ),
+                                child: Text(
+                                  AppString.getCallbackButton,
+                                  style: AppStyle.heading6Regular(
+                                      color: AppColor.primaryColor),
+                                ),
+                              ),
+                            ).paddingOnly(top: AppSize.appSize26),
+                          ],
                         ),
-                      ).paddingOnly(top: AppSize.appSize26),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ).paddingOnly(top: AppSize.appSize16),
-
-        ],
-      ).paddingOnly(
-        top: AppSize.appSize10,
-        left: AppSize.appSize16,
-        right: AppSize.appSize16,
-      ),
+                      ),
+                    );
+                  },
+                ).paddingOnly(top: AppSize.appSize16),
 
 
 
 
+
+
+
+
+
+
+              ],
+            ).paddingOnly(
+              top: AppSize.appSize10,
+              left: AppSize.appSize16,
+              right: AppSize.appSize16,
+            ),
+
+
+          );
+        }
 
     );
   }
+
 }

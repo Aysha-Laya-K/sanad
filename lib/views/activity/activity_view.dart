@@ -72,7 +72,7 @@ class ActivityView extends StatelessWidget {
               // )
             ],
           ),
-          Container(
+         /* Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(AppSize.appSize12),
               color: AppColor.whiteColor,
@@ -124,7 +124,7 @@ class ActivityView extends StatelessWidget {
                 ),
               ),
             ),
-          ).paddingOnly(top: AppSize.appSize26),
+          ).paddingOnly(top: AppSize.appSize26),*/
           activityController.deleteShowing.value == true
               ? ListView.builder(
                   shrinkWrap: true,

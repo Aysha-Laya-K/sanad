@@ -31,7 +31,7 @@ class Properties {
   final int perPage;
   final String? prevPageUrl;
   final int? to;
-  final int total;
+   int total;
 
   Properties({
     required this.currentPage,

@@ -3,13 +3,59 @@ import 'package:get/get.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/configs/app_string.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/gen/assets.gen.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:luxury_real_estate_flutter_ui_kit/model/property__model.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:luxury_real_estate_flutter_ui_kit/model/typemodel.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/controller/home_controller.dart';
+
 
 class PropertyTypeListController extends GetxController {
   TextEditingController searchController = TextEditingController();
   RxList<bool> isPropertyLiked = <bool>[].obs;
- // RxList<Property> properties = <Property>[].obs;
-  //var loading = true.obs;
+  Rx<TypeResponse?> typeResponse = Rx<TypeResponse?>(null);
+  RxBool isLoading = false.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+  }
+
+  Future<void> fetchTypeProperties({required String id,required String purpose}) async {
+    print("Passed property id: $id");
+    print("Passed purpose: $purpose");
+
+    isLoading(true); // Start loading
+    final String apiUrl = "https://project.artisans.qa/realestate/api/properties?id=$id&purpose=$purpose";
+
+
+
+    final uri = Uri.parse(apiUrl);
+
+    try {
+      final response = await http.get(uri);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        typeResponse.value = TypeResponse.fromJson(data);
+        print("Number of items in the list: ${typeResponse.value!.data.length}");
+        final wishlistFutures = typeResponse.value!.data.map((property) async {
+          await Get.find<HomeController>().checkWishlistStatus(property.id);
+        }).toList();
+
+        await Future.wait(wishlistFutures); // Wait for all checks to complete
+        // Check wishlist status for each property
+        /*for (var property in typeResponse.value!.data) {
+          await Get.find<HomeController>().checkWishlistStatus(property.id);
+        }*/
+      } else {
+        print("Failed to load properties. Status code: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("Error while fetching properties: $e");
+    } finally {
+      isLoading(false); // Stop loading
+    }
+  }
 
 
 

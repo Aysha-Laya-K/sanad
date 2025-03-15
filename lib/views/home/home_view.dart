@@ -25,6 +25,11 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:luxury_real_estate_flutter_ui_kit/controller/property_details_controller.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/configs/share_pref.dart';
+
+import '../property_list/property_details_view.dart';
+
+
+
 class HomeView extends StatefulWidget {
   HomeView({super.key});
 
@@ -211,10 +216,18 @@ class _HomeViewState extends State<HomeView> {
               onTap: () {
                 print('Selected Properties: $selectedProperties');
 
-                Get.to(
+                /*Get.to(
                   SearchView(),
                   arguments: selectedProperties,
-                );
+                );*/
+                // From Home Page
+                Get.toNamed(AppRoutes.searchView, arguments: {
+                  'selectedProperties': selectedProperties,
+                  'source': 'home', // Indicates navigation from home page
+                });
+
+// From Map Screen
+
 
 
               },
@@ -418,11 +431,14 @@ class _HomeViewState extends State<HomeView> {
 
                   return GestureDetector(
                     onTap: () async {
-                      var typeResponse = await homeController.fetchTypeProperties(id: property.id.toString());
-
                       print('Navigating to property type list view...');
-                      Get.toNamed(AppRoutes.propertyTypeListView, arguments: typeResponse,);
-
+                      Get.toNamed(
+                        AppRoutes.propertyTypeListView,
+                        arguments: {
+                          'propertyTypeId': property.id.toString(), // Pass the property type ID as a String
+                          'purpose': homeController.purpose, // Pass the purpose from the HomeController
+                        }, // Pass the property type ID as a String
+                      );
                       print("id---------${property.id}");
                     },
                     child: Container(
@@ -507,21 +523,33 @@ class _HomeViewState extends State<HomeView> {
                       ),
                     ),
                    // Optional: Add some space between title and list
-
-                    ListView.builder(
+                    GetBuilder<HomeController>(
+                    builder: (homeController) {
+                      return
+                     ListView.builder(
                       shrinkWrap: true,
                       physics: NeverScrollableScrollPhysics(),
                       padding: const EdgeInsets.only(left: AppSize.appSize12),
                       itemCount: homeController.featuredProperties.length, // Use the dynamic list length
                       itemBuilder: (context, index) {
                         final property = homeController.featuredProperties[index];
+                        final isSaved = homeController.isSavedMap[property.id] ?? false;
                         if (!isSavedMap.containsKey(property.id)) {
                           isSavedMap[property.id] = false;
                         }
 
                         // Access each property
                         return GestureDetector(
-                          onTap: () async {
+                          onTap: () {
+                            final int propertyId = property.id;
+                            print('Tapped on property with ID: $propertyId');
+
+                            // Simply navigate to a new PropertyDetailsView with the property ID
+                            // The new screen will create its own controller with the property ID
+                            Get.to(() => PropertyDetailsView(),
+                                arguments: propertyId, preventDuplicates: false);
+                          },
+                         /* onTap: () async {
                             /*final int propertyId = property.id;
                             print('Tapped on property with ID: $propertyId');
 
@@ -541,7 +569,7 @@ class _HomeViewState extends State<HomeView> {
 
 
 
-                          },
+                          },*/
                           child: Padding(
                             padding: const EdgeInsets.only(bottom: 10),
                             child: Container(
@@ -570,6 +598,13 @@ class _HomeViewState extends State<HomeView> {
                                         top: AppSize.appSize6,
                                         child: GestureDetector(
                                           onTap: () async {
+                                            if (isSaved) {
+                                              await homeController.removeFromWishlist(property.id);
+                                            } else {
+                                              await homeController.addToWishlist(property.id);
+                                            }
+                                          },
+                                          /*onTap: () async {
                                             // Check for token before proceeding.
                                             final token = await UserTypeManager.getToken();
                                             if (token == null) {
@@ -635,7 +670,7 @@ class _HomeViewState extends State<HomeView> {
                                                 );
                                               }
                                             }
-                                          },
+                                          },*/
                                           child: Container(
                                             width: AppSize.appSize32,
                                             height: AppSize.appSize32,
@@ -647,7 +682,18 @@ class _HomeViewState extends State<HomeView> {
                                                 width: 1,
                                               ),
                                             ),
-                                            child: Icon(
+                                            child: Obx(() {
+                                        final isSaved = homeController.isSavedMap[property.id] ?? false;
+                                        return Icon(
+                                          isSaved ? Icons.bookmark : Icons
+                                              .bookmark_border,
+                                          size: AppSize.appSize20,
+                                          color: isSaved
+                                              ? AppColor.primaryColor
+                                              : AppColor.primaryColor
+                                              .withOpacity(0.6),
+                                        );
+                                        }), /*Icon(
                                               isSavedMap[property.id] == true
                                                   ? Icons.bookmark
                                                   : Icons.bookmark_border,
@@ -655,7 +701,7 @@ class _HomeViewState extends State<HomeView> {
                                               color: isSavedMap[property.id] == true
                                                   ? AppColor.primaryColor
                                                   : AppColor.primaryColor.withOpacity(0.6),
-                                            ),
+                                            ),*/
                                           ),
                                         ),
                                       ),
@@ -803,150 +849,171 @@ class _HomeViewState extends State<HomeView> {
                           ),
                         );
                       },
+                     );
+                    }
                     ).paddingOnly(top: AppSize.appSize16),
                   ],
                 );
               }
             }),
           ),
-
-
-          Text(
-            AppString.newprop,
-            style: AppStyle.heading3SemiBold(color: AppColor.textColor),
-          ).paddingOnly(
-            top: AppSize.appSize26,
-            left: AppSize.appSize16,
-            right: AppSize.appSize16,
-          ),
+// Check if newProperties is not null and not empty before displaying the section
 
 
 
-          SizedBox(
-            height: AppSize.appSize372,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              shrinkWrap: true,
-              physics: const ClampingScrollPhysics(),
-              padding: const EdgeInsets.only(left: AppSize.appSize16),
-              itemCount: homeController.newProperties.length,
-              itemBuilder: (context, index) {
-                final property = homeController.newProperties[index];
-                if (!isSavedMap.containsKey(property.id)) {
-                  isSavedMap[property.id] = false;
-                }
-                return GestureDetector(
-                  onTap: () async {
-                    final int propertyId = property.id;
-                    print('Tapped on property with ID: $propertyId');
-                   // await propertyController.fetchPropertyDetails(propertyId); // Fetch details
-                    //Get.toNamed(AppRoutes.propertyDetailsView, arguments: propertyController.propertyDetails.value);
-                    Get.toNamed(AppRoutes.propertyDetailsView, arguments: propertyId);
-                    //Get.toNamed(AppRoutes.propertyDetailsView);
-                  },
-                  child: Container(
-                    width: AppSize.appSize300,
-                    padding: const EdgeInsets.all(AppSize.appSize10),
-                    margin: const EdgeInsets.only(right: AppSize.appSize16),
-                    decoration: BoxDecoration(
-                      color: AppColor.secondaryColor,
-                      borderRadius: BorderRadius.circular(AppSize.appSize12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Stack(
-                          children: [
-                            Image.network(
-                              property.thumbnailImage, // Load thumbnail from model
-                              height: AppSize.appSize200,
-                              width: double.infinity,
-                              fit: BoxFit.cover,
-                            ),
-                            Positioned(
-                              right: AppSize.appSize6,
-                              top: AppSize.appSize6,
-                              child: GestureDetector(
-                                onTap: () async {
-                                  // Check for token before proceeding.
-                                  final token = await UserTypeManager.getToken();
-                                  if (token == null) {
-                                    // If no token, prompt the user to log in.
-                                    Get.snackbar(
-                                      'Login Required',
-                                      'Please login to add or remove property from wishlist.',
-                                      snackPosition: SnackPosition.TOP,
-                                    );
-                                    Get.toNamed(AppRoutes.loginView);
-                                    return;
+    SizedBox(
+    child: Obx(() {
+    if (homeController.isLoading.value) {
+    // Show the loading indicator while data is being fetched
+    return Center(
+
+    );
+    }
+    else if (homeController.featuredProperties.isEmpty) {
+    // Show "No Data Available" message when no properties are fetched
+    return Padding(
+    padding: EdgeInsets.only(top: 0.0), // Adjust the padding as needed
+    child: Center(
+
+    ),
+    );
+    }
+
+    else {
+      // Show the list when data is available
+      return
+        Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            // Align children to the left
+            children: [
+              if (homeController.newProperties != null &&
+                  homeController.newProperties.isNotEmpty)
+                Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    // Align children to the left
+                    children: [
+
+
+                      Text(
+                        AppString.newprop,
+                        style: AppStyle.heading3SemiBold(
+                            color: AppColor.textColor),
+                      ).paddingOnly(
+                        top: AppSize.appSize26,
+                        left: AppSize.appSize16,
+                        right: AppSize.appSize16,
+                      ),
+
+
+                      SizedBox(
+                        height: AppSize.appSize372,
+                        child: GetBuilder<HomeController>(
+                            builder: (homeController) {
+                              return ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                shrinkWrap: true,
+                                physics: const ClampingScrollPhysics(),
+                                padding: const EdgeInsets.only(
+                                    left: AppSize.appSize16),
+                                itemCount: homeController.newProperties.length,
+                                itemBuilder: (context, index) {
+                                  final property = homeController
+                                      .newProperties[index];
+                                  final isSaved = homeController
+                                      .isSavedMap[property.id] ??
+                                      false;
+                                  if (!isSavedMap.containsKey(property.id)) {
+                                    isSavedMap[property.id] = false;
                                   }
+                                  return GestureDetector(
+                                    onTap: () async {
+                                      final int propertyId = property.id;
+                                      print(
+                                          'Tapped on property with ID: $propertyId');
+                                      // await propertyController.fetchPropertyDetails(propertyId); // Fetch details
+                                      //Get.toNamed(AppRoutes.propertyDetailsView, arguments: propertyController.propertyDetails.value);
+                                      Get.toNamed(AppRoutes.propertyDetailsView,
+                                          arguments: propertyId);
+                                      //Get.toNamed(AppRoutes.propertyDetailsView);
+                                    },
+                                    child: Container(
+                                      width: AppSize.appSize300,
+                                      padding: const EdgeInsets.all(
+                                          AppSize.appSize10),
+                                      margin: const EdgeInsets.only(
+                                          right: AppSize.appSize16),
+                                      decoration: BoxDecoration(
+                                        color: AppColor.secondaryColor,
+                                        borderRadius: BorderRadius.circular(
+                                            AppSize.appSize12),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment
+                                            .start,
+                                        mainAxisAlignment: MainAxisAlignment
+                                            .spaceBetween,
+                                        children: [
+                                          Stack(
+                                            children: [
+                                              Image.network(
+                                                property.thumbnailImage,
+                                                // Load thumbnail from model
+                                                height: AppSize.appSize200,
+                                                width: double.infinity,
+                                                fit: BoxFit.cover,
+                                              ),
+                                              Positioned(
+                                                right: AppSize.appSize6,
+                                                top: AppSize.appSize6,
+                                                child: GestureDetector(
+                                                  onTap: () async {
+                                                    if (isSaved) {
+                                                      await homeController
+                                                          .removeFromWishlist(
+                                                          property.id);
+                                                    } else {
+                                                      await homeController
+                                                          .addToWishlist(
+                                                          property.id);
+                                                    }
+                                                  },
+                                                  child: Container(
+                                                    width: AppSize.appSize32,
+                                                    height: AppSize.appSize32,
+                                                    decoration: BoxDecoration(
+                                                      color: AppColor.whiteColor
+                                                          .withOpacity(
+                                                          0.5),
+                                                      borderRadius: BorderRadius
+                                                          .circular(
+                                                          AppSize.appSize6),
+                                                      border: Border.all(
+                                                        color: Colors
+                                                            .transparent,
+                                                        width: 1,
+                                                      ),
+                                                    ),
+                                                    child: Obx(() {
+                                                      final isSaved = homeController
+                                                          .isSavedMap[property
+                                                          .id] ?? false;
+                                                      return Icon(
+                                                        isSaved
+                                                            ? Icons.bookmark
+                                                            : Icons
+                                                            .bookmark_border,
+                                                        size: AppSize.appSize20,
+                                                        color: isSaved
+                                                            ? AppColor
+                                                            .primaryColor
+                                                            : AppColor
+                                                            .primaryColor
+                                                            .withOpacity(0.6),
+                                                      );
+                                                    }),
 
-                                  // Toggle the saved state.
-                                  bool newState = !isSavedMap[property.id]!;
-                                  setState(() {
-                                    isSavedMap[property.id] = newState;
-                                  });
 
-                                  final int propertyId = property.id;
-                                  if (newState) {
-                                    // If saved state is true, call the add-to-wishlist API.
-                                    final url = Uri.parse(
-                                      'https://project.artisans.qa/realestate/api/user/add-to-wishlist/$propertyId',
-                                    );
-                                    try {
-                                      final response = await http.get(
-                                        url,
-                                        headers: {
-                                          'Authorization': 'Bearer $token',
-                                        },
-                                      );
-                                      print('Add-to-Wishlist API Response: ${response.body}');
-                                      print('Property added to wishlist with ID: $propertyId');
-                                    } catch (error) {
-                                      print('Error calling add-to-wishlist API: $error');
-                                      Get.snackbar(
-                                        'Error',
-                                        'Failed to add property to wishlist.',
-                                        snackPosition: SnackPosition.TOP,
-                                      );
-                                    }
-                                  } else {
-                                    // If saved state is false, call the remove-wishlist API.
-                                    final url = Uri.parse(
-                                      'https://project.artisans.qa/realestate/api/user/remove-wishlist/$propertyId',
-                                    );
-                                    try {
-                                      final response = await http.delete(
-                                        url,
-                                        headers: {
-                                          'Authorization': 'Bearer $token',
-                                        },
-                                      );
-                                      print('Remove-Wishlist API Response: ${response.body}');
-                                      print('Property removed ID: $propertyId');
-                                    } catch (error) {
-                                      print('Error calling remove-wishlist API: $error');
-                                      Get.snackbar(
-                                        'Error',
-                                        'Failed to remove property from wishlist.',
-                                        snackPosition: SnackPosition.TOP,
-                                      );
-                                    }
-                                  }
-                                },
-                                child: Container(
-                                  width: AppSize.appSize32,
-                                  height: AppSize.appSize32,
-                                  decoration: BoxDecoration(
-                                    color: AppColor.whiteColor.withOpacity(0.5),
-                                    borderRadius: BorderRadius.circular(AppSize.appSize6),
-                                    border: Border.all(
-                                      color: Colors.transparent,
-                                      width: 1,
-                                    ),
-                                  ),
-                                  child: Icon(
+                                                    /*Icon(
                                     isSavedMap[property.id] == true
                                         ? Icons.bookmark
                                         : Icons.bookmark_border,
@@ -954,152 +1021,209 @@ class _HomeViewState extends State<HomeView> {
                                     color: isSavedMap[property.id] == true
                                         ? AppColor.primaryColor
                                         : AppColor.primaryColor.withOpacity(0.6),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              property.title,
-                              style: AppStyle.heading5SemiBold(
-                                  color: AppColor.textColor),
-                            ),
-                            /*Text(
+                                  ),*/
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          Column(
+                                            crossAxisAlignment: CrossAxisAlignment
+                                                .start,
+                                            children: [
+                                              Text(
+                                                property.title,
+                                                style: AppStyle
+                                                    .heading5SemiBold(
+                                                    color: AppColor.textColor),
+                                              ),
+                                              /*Text(
                               property.address,
                               style: AppStyle.heading5Regular(
                                   color: AppColor.descriptionColor),
                             ).paddingOnly(top: AppSize.appSize6),*/
-                          ],
-                        ).paddingOnly(top: AppSize.appSize8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              "QAR ${property.price}", // Add "QAR" before the price
-                              style: AppStyle.heading5Medium(color: AppColor.primaryColor),
-                            ),
-                            Row(
-                              children: [
-                                Text(
-                                  property.totalRating != null
-                                      ? property.totalRating.toString()
-                                      : 'No Rating', // Fallback for null value
-                                  style: AppStyle.heading5Medium(color: AppColor.primaryColor),
-                                ),
-                                SizedBox(width: AppSize.appSize6),
-                                Icon(
-                                  Icons.star,
-                                  color: Color(0xFFFFB84D),
-                                  size: AppSize.appSize18,
-                                ),
-                              ],
-                            ),
-                          ],
-                        ).paddingOnly(top: AppSize.appSize6),
-                        Divider(
-                          color: AppColor.descriptionColor
-                              .withOpacity(AppSize.appSizePoint3),
+                                            ],
+                                          ).paddingOnly(top: AppSize.appSize8),
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment
+                                                .spaceBetween,
+                                            children: [
+                                              Text(
+                                                "QAR ${property.price}",
+                                                // Add "QAR" before the price
+                                                style: AppStyle.heading5Medium(
+                                                    color: AppColor
+                                                        .primaryColor),
+                                              ),
+                                              Row(
+                                                children: [
+                                                  Text(
+                                                    property.totalRating != null
+                                                        ? property.totalRating
+                                                        .toString()
+                                                        : 'No Rating',
+                                                    // Fallback for null value
+                                                    style: AppStyle
+                                                        .heading5Medium(
+                                                        color: AppColor
+                                                            .primaryColor),
+                                                  ),
+                                                  SizedBox(
+                                                      width: AppSize.appSize6),
+                                                  Icon(
+                                                    Icons.star,
+                                                    color: Color(0xFFFFB84D),
+                                                    size: AppSize.appSize18,
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ).paddingOnly(top: AppSize.appSize6),
+                                          Divider(
+                                            color: AppColor.descriptionColor
+                                                .withOpacity(
+                                                AppSize.appSizePoint3),
+                                          ),
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment
+                                                .spaceBetween,
+                                            children: [
+                                              // Display number of bedrooms
+                                              Container(
+                                                padding: const EdgeInsets
+                                                    .symmetric(
+                                                  vertical: AppSize.appSize6,
+                                                  horizontal: AppSize.appSize16,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  borderRadius: BorderRadius
+                                                      .circular(
+                                                      AppSize.appSize12),
+                                                  border: Border.all(
+                                                    color: AppColor
+                                                        .primaryColor,
+                                                    width: AppSize
+                                                        .appSizePoint50,
+                                                  ),
+                                                ),
+                                                child: Row(
+                                                  children: [
+                                                    Icon(
+                                                      Icons.bed,
+                                                      color: Colors.blueGrey,
+                                                      size: AppSize.appSize18,
+                                                    ),
+                                                    SizedBox(width: AppSize
+                                                        .appSize6),
+                                                    Text(
+                                                      '${property
+                                                          .totalBedroom} ',
+                                                      style: AppStyle
+                                                          .heading5Medium(
+                                                          color: AppColor
+                                                              .textColor),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              // Display number of bathrooms
+                                              Container(
+                                                padding: const EdgeInsets
+                                                    .symmetric(
+                                                  vertical: AppSize.appSize6,
+                                                  horizontal: AppSize.appSize16,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  borderRadius: BorderRadius
+                                                      .circular(
+                                                      AppSize.appSize12),
+                                                  border: Border.all(
+                                                    color: AppColor
+                                                        .primaryColor,
+                                                    width: AppSize
+                                                        .appSizePoint50,
+                                                  ),
+                                                ),
+                                                child: Row(
+                                                  children: [
+                                                    Icon(
+                                                      Icons.bathtub,
+                                                      color: Colors.blueGrey,
+                                                      size: AppSize.appSize18,
+                                                    ),
+                                                    SizedBox(width: AppSize
+                                                        .appSize6),
+                                                    Text(
+                                                      '${property
+                                                          .totalBathroom} ',
+                                                      style: AppStyle
+                                                          .heading5Medium(
+                                                          color: AppColor
+                                                              .textColor),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              // Display area
+                                              Container(
+                                                padding: const EdgeInsets
+                                                    .symmetric(
+                                                  vertical: AppSize.appSize6,
+                                                  horizontal: AppSize.appSize16,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  borderRadius: BorderRadius
+                                                      .circular(
+                                                      AppSize.appSize12),
+                                                  border: Border.all(
+                                                    color: AppColor
+                                                        .primaryColor,
+                                                    width: AppSize
+                                                        .appSizePoint50,
+                                                  ),
+                                                ),
+                                                child: Row(
+                                                  children: [
+                                                    Icon(
+                                                      Icons.area_chart,
+                                                      color: Colors.blueGrey,
+                                                      size: AppSize.appSize18,
+                                                    ),
+                                                    SizedBox(width: AppSize
+                                                        .appSize6),
+                                                    Text(
+                                                      '${property
+                                                          .totalArea} sq/m',
+                                                      style: AppStyle
+                                                          .heading5Medium(
+                                                          color: AppColor
+                                                              .textColor),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ).paddingOnly(top: AppSize.appSize6),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              );
+                            }
                         ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            // Display number of bedrooms
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: AppSize.appSize6,
-                                horizontal: AppSize.appSize16,
-                              ),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(AppSize.appSize12),
-                                border: Border.all(
-                                  color: AppColor.primaryColor,
-                                  width: AppSize.appSizePoint50,
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.bed,
-                                    color: Colors.blueGrey,
-                                    size: AppSize.appSize18,
-                                  ),
-                                  SizedBox(width: AppSize.appSize6),
-                                  Text(
-                                    '${property.totalBedroom} ',
-                                    style: AppStyle.heading5Medium(color: AppColor.textColor),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            // Display number of bathrooms
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: AppSize.appSize6,
-                                horizontal: AppSize.appSize16,
-                              ),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(AppSize.appSize12),
-                                border: Border.all(
-                                  color: AppColor.primaryColor,
-                                  width: AppSize.appSizePoint50,
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.bathtub,
-                                    color: Colors.blueGrey,
-                                    size: AppSize.appSize18,
-                                  ),
-                                  SizedBox(width: AppSize.appSize6),
-                                  Text(
-                                    '${property.totalBathroom} ',
-                                    style: AppStyle.heading5Medium(color: AppColor.textColor),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            // Display area
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: AppSize.appSize6,
-                                horizontal: AppSize.appSize16,
-                              ),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(AppSize.appSize12),
-                                border: Border.all(
-                                  color: AppColor.primaryColor,
-                                  width: AppSize.appSizePoint50,
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.area_chart,
-                                    color: Colors.blueGrey,
-                                    size: AppSize.appSize18,
-                                  ),
-                                  SizedBox(width: AppSize.appSize6),
-                                  Text(
-                                    '${property.totalArea} sq/m',
-                                    style: AppStyle.heading5Medium(color: AppColor.textColor),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ).paddingOnly(top: AppSize.appSize6),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ).paddingOnly(top: AppSize.appSize16),
+                      ).paddingOnly(top: AppSize.appSize16),
+                    ]
+                )
+            ]
+        );
+    }
+    }
+    )
+
+
+
+    ),
 
 
 

@@ -15,6 +15,8 @@ import 'package:luxury_real_estate_flutter_ui_kit/model/newproperty_model.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/model/map_model.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/model/profile_model.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/configs/share_pref.dart';
+import 'saved_properties_controller.dart';
+import 'package:flutter/foundation.dart';
 
 
 class HomeController extends GetxController {
@@ -37,9 +39,8 @@ class HomeController extends GetxController {
  // RxString apiResponse = ''.obs;
   var mapDataResponse = Rx<MapDataResponse?>(null);
   RxMap<int, bool> isSavedMap = RxMap<int, bool>();
-  Rx<UserProfile?> userProfile = Rx<UserProfile?>(null); // Use nullable UserProfile
+  Rx<UserProfile?> userProfile = Rx<UserProfile?>(null);
 
-// Store service IDs separately
   @override
 
   void onInit() {
@@ -48,7 +49,7 @@ class HomeController extends GetxController {
     fetchServiceTypes();
     fetchFeaturedProperty(purpose);
     fetchAgents();
-    fetchNewProperty();
+    fetchNewProperty(purpose);
     checkTokenAndFetchProfile();
     print("Current purpose: $purpose");// Fetch property types when the controller initializes
   }
@@ -202,7 +203,177 @@ class HomeController extends GetxController {
   }
 
 
+  // Fetch featured properties
   Future<void> fetchFeaturedProperty(String purpose) async {
+    try {
+      isLoading.value = true;
+      final response = await http.get(
+        Uri.parse("https://project.artisans.qa/realestate/api/featured-properties?purpose=$purpose"),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final featuredPropertyResponse = PropertyListResponse.fromJson(data);
+        featuredProperties.assignAll(featuredPropertyResponse.data);
+
+        // Check wishlist status for each property
+        for (var property in featuredProperties) {
+          await checkWishlistStatus(property.id);
+        }
+      } else {
+        Get.snackbar("Error", "Failed to load featured properties");
+      }
+    } catch (e) {
+      Get.snackbar("Error", "An error occurred: $e");
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // Check if a property is in the wishlist
+  Future<void> checkWishlistStatus(int propertyId) async {
+    final token = await UserTypeManager.getToken();
+    if (token == null) return;
+
+    try {
+      final response = await http.get(
+        Uri.parse("https://project.artisans.qa/realestate/api/user/check-in-wishlist?property_id=$propertyId"),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final isInWishlist = data['status'] == true;
+        isSavedMap[propertyId] = isInWishlist;
+      }
+    } catch (e) {
+      print("Error checking wishlist status: $e");
+    }
+  }
+  // In HomeController
+  Future<void> addToWishlist(int propertyId) async {
+    final token = await UserTypeManager.getToken();
+    if (token == null) {
+      Get.snackbar("Login Required", "Please login to add properties to your wishlist.");
+      Get.toNamed(AppRoutes.loginView);
+      return;
+    }
+
+    try {
+      final response = await http.get(
+        Uri.parse("https://project.artisans.qa/realestate/api/user/add-to-wishlist/$propertyId"),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        isSavedMap[propertyId] = true; // Update isSavedMap
+        update(); // Notify listeners
+        print("Successfully added property $propertyId to wishlist.");
+      }
+    } catch (e) {
+      print("Error adding to wishlist: $e");
+      Get.snackbar("Error", "Failed to add property to wishlist: $e");
+    }
+  }
+
+  Future<void> removeFromWishlist(int propertyId, {bool isFromSavedPage = false}) async {
+    final token = await UserTypeManager.getToken();
+    if (token == null) {
+      Get.snackbar("Login Required", "Please login to remove properties from your wishlist.");
+      Get.toNamed(AppRoutes.loginView);
+      return;
+    }
+
+    try {
+      final response = await http.delete(
+        Uri.parse("https://project.artisans.qa/realestate/api/user/remove-wishlist/$propertyId"),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        isSavedMap[propertyId] = false; // Update isSavedMap
+        update(); // Notify listeners
+        print("Successfully removed property $propertyId from wishlist.");
+
+        if (isFromSavedPage) {
+          Get.find<SavedPropertiesController>().removePropertyFromWishlist(propertyId);
+        }
+      }
+    } catch (e) {
+      print("Error removing from wishlist: $e");
+      Get.snackbar("Error", "Failed to remove property from wishlist: $e");
+    }
+  }
+
+  // Add a property to the wishlist
+ /* Future<void> addToWishlist(int propertyId) async {
+    final token = await UserTypeManager.getToken();
+    if (token == null) {
+      Get.snackbar("Login Required", "Please login to add properties to your wishlist.");
+      Get.toNamed(AppRoutes.loginView);
+      return;
+
+    }
+
+    try {
+      final response = await http.get(
+        Uri.parse("https://project.artisans.qa/realestate/api/user/add-to-wishlist/$propertyId"),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        isSavedMap[propertyId] = true;
+        print("Successfully added property $propertyId to wishlist.");
+        print("API Response for adding to Wishlist: ${response.body}");
+      }
+    } catch (e) {
+      print("Caught error while adding property $propertyId to wishlist:");
+      print("Error type: ${e.runtimeType}"); // Print the type of exception
+      print("Error message: ${e.toString()}"); // Print the error message
+      Get.snackbar("Error", "Failed to add property to wishlist: $e");
+    }
+  }
+
+  // Remove a property from the wishlist
+  Future<void> removeFromWishlist(int propertyId,{bool isFromSavedPage = false}) async {
+    final token = await UserTypeManager.getToken();
+    if (token == null) {
+      Get.snackbar("Login Required", "Please login to remove properties from your wishlist.");
+      Get.toNamed(AppRoutes.loginView);
+      return;
+
+    }
+
+    try {
+      final response = await http.delete(
+        Uri.parse("https://project.artisans.qa/realestate/api/user/remove-wishlist/$propertyId"),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        isSavedMap[propertyId] = false;
+        print("Successfully removed property $propertyId to wishlist.");
+        print("API Response for removed from Wishlist: ${response.body}");
+
+        if (isFromSavedPage) {
+          Get.find<SavedPropertiesController>().removePropertyFromWishlist(propertyId);
+        }
+
+       // Get.find<SavedPropertiesController>().removePropertyFromWishlist(propertyId);
+        print("hii");
+
+
+      }
+    } catch (e) {
+      print("Caught error while removing property $propertyId to wishlist:");
+      print("Error type: ${e.runtimeType}"); // Print the type of exception
+      print("Error message: ${e.toString()}"); // Print the error message
+     Get.snackbar("Error", "Failed to remove property from wishlist: $e");
+    }
+  }*/
+
+
+ /* Future<void> fetchFeaturedProperty(String purpose) async {
     try {
       isLoading.value = true;
       // Using the dynamic limit and offset values in the API URL
@@ -233,16 +404,21 @@ class HomeController extends GetxController {
     finally{
       isLoading.value = false;
     }
-  }
+  }*/
 
 
 
-  Future<void> fetchNewProperty() async {
+
+  Future<void> fetchNewProperty(String purpose) async {
     try {
       isLoading.value = true;
       // Using the dynamic limit and offset values in the API URL
       final response = await http.get(
-        Uri.parse("https://project.artisans.qa/realestate/api/new-properties"),
+        Uri.parse("https://project.artisans.qa/realestate/api/new-properties?purpose=$purpose"),
+        headers: {
+          "Content-Type": "application/json",
+        },
+
       );
 
       if (response.statusCode == 200) {
@@ -251,7 +427,10 @@ class HomeController extends GetxController {
         final data = json.decode(response.body);
         final newPropertyResponse = NewPropertyResponse.fromJson(data);
         newProperties.assignAll(newPropertyResponse.data);
-        isSavedList.assignAll(List.generate(newProperties.length, (index) => false));
+        for (var property in newProperties) {
+          await checkWishlistStatus(property.id);
+        }
+      //  isSavedList.assignAll(List.generate(newProperties.length, (index) => false));
 
 
 
@@ -285,7 +464,7 @@ class HomeController extends GetxController {
 
 
 
-  Future<TypeResponse?> fetchTypeProperties({
+/*  Future<TypeResponse?> fetchTypeProperties({
     required String id,
 
   }) async {
@@ -319,7 +498,11 @@ class HomeController extends GetxController {
 
         // Parse into TypeResponse model
         TypeResponse typeResponse = TypeResponse.fromJson(data);
-        print("--------------${typeResponse.data.length}"); // Access the data property correctly
+
+        print("--------------${typeResponse.data.length}");
+        for (var property in typeResponse.data) {
+          await checkWishlistStatus(property.id);
+        }// Access the data property correctly
 
         return typeResponse;  // Return the parsed response
 
@@ -331,7 +514,7 @@ class HomeController extends GetxController {
     }
 
     return null; // In case of failure, return null
-  }
+  }*/
 
   Future<void> fetchPropertyDetails(int propertyId) async {
     print('Fetching details for property ID: $propertyId');  // Debugging print
@@ -412,9 +595,10 @@ class HomeController extends GetxController {
   void updateCountry(int index) {
     selectCountry.value = index;
     // Dynamically set the purpose based on the index
-    purpose = (index == 0) ? 'rent' : 'buy';
+    purpose = (index == 0) ? 'rent' : 'sale';
     print("Current purpose: $purpose");// Index 0 is for rent, index 1 is for buy
-    fetchFeaturedProperty(purpose); // Fetch the featured properties with the updated purpose
+    fetchFeaturedProperty(purpose);
+    fetchNewProperty(purpose);// Fetch the featured properties with the updated purpose
   }
 
 

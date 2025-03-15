@@ -51,9 +51,12 @@ import 'package:luxury_real_estate_flutter_ui_kit/views/requirements/requirement
 import 'package:luxury_real_estate_flutter_ui_kit/views/customer_needs/customer_needs.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/views/profile/my_needs/myneeds.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/views/requirement_update./req_update.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/views/customer_needs/needs_detail.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/views/home/property_map_screen.dart';
 
 class AppRoutes {
   static const String splashView = "/splash_view";
+  static const String needDetails = "/needs_detail";
   static const String onboardView = "/onboard_view";
   static const String loginView = "/login_view";
   static const String otpView = "/otp_view";
@@ -68,6 +71,7 @@ class AppRoutes {
   static const String propertyListView = "/property_list_view";
   static const String propertyDetailsView = "/property_details_view";
   static const String galleryView = "/gallery_view";
+  static const String map = "/property_map_screen";
   static const String furnishingDetailsView = "/furnishing_details_view";
   static const String aboutPropertyView = "/about_property_view";
   static const String contactOwnerView = "/contact_owner_view";
@@ -121,7 +125,18 @@ class AppRoutes {
     GetPage(name: notificationView, page: () => NotificationView()),
     GetPage(name: searchView, page: () => SearchView()),
     GetPage(name: propertyListView, page: () => PropertyListView()),
-    GetPage(name: propertyTypeListView, page: () => PropertyTypeListView()),
+    GetPage(
+      name: AppRoutes.propertyTypeListView,
+      page: () {
+        final arguments = Get.arguments as Map<String, dynamic>; // Retrieve arguments as a map
+        final String propertyTypeId = arguments['propertyTypeId']; // Extract propertyTypeId
+        final String purpose = arguments['purpose']; // Extract purpose
+        return PropertyTypeListView(
+          propertyTypeId: propertyTypeId,
+          purpose: purpose, // Pass the purpose parameter
+        );
+      },
+    ),
     GetPage(name: propertyDetailsView, page: () => PropertyDetailsView(/*propertyId:Get.arguments ,*/)),
     GetPage(name: galleryView, page: () => GalleryView()),
     GetPage(name: furnishingDetailsView, page: () => FurnishingDetailsView()),
@@ -140,6 +155,10 @@ class AppRoutes {
     GetPage(name: popularBuildersView, page: () => PopularBuildersView()),
     GetPage(name: savedPropertiesView, page: () => SavedPropertiesView()),
     GetPage(name: contactPropertyView, page: () => ContactPropertyView()),
+    GetPage(
+      name: AppRoutes.map,
+      page: () => PropertyMapScreen(propertyResponse: Get.arguments), // Pass arguments
+    ),
     GetPage(name: myNeeds, page: () => MyNeedsView()),
     GetPage(name: viewedPropertyView, page: () => ViewedPropertyView()),
     GetPage(name: recentActivityView, page: () => RecentActivityView()),
@@ -147,6 +166,8 @@ class AppRoutes {
     GetPage(name: leadDetailsView, page: () => const LeadDetailsView()),
     GetPage(name: editProfileView, page: () => EditProfileView()),
     GetPage(name: agentsListView, page: () => AgentsListView()),
+    GetPage(name: needDetails, page: () => CustomerNeedDetailView(need: Get.arguments)),
+
     GetPage(name: agentsDetailsView, page: () => AgentsDetailsView()),
     GetPage(
         name: addReviewsForBrokerView, page: () => AddReviewsForBrokerView()),

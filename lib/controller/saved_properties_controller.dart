@@ -6,12 +6,14 @@ import 'package:luxury_real_estate_flutter_ui_kit/configs/share_pref.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/model/wishlist_model.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:luxury_real_estate_flutter_ui_kit/routes/app_routes.dart';
 
 class SavedPropertiesController extends GetxController {
   RxInt selectSavedProperty = 0.obs;
 
   RxList<bool> isSimilarPropertyLiked = <bool>[].obs;
   var wishlistResponse = Rxn<WishlistResponse>();
+  RxMap<int, bool> isSavedMap = RxMap<int, bool>();
 
   void updateSavedProperty(int index) {
     selectSavedProperty.value = index;
@@ -25,7 +27,20 @@ class SavedPropertiesController extends GetxController {
       throw 'Could not launch $phoneNumber';
     }
   }
+  void removePropertyFromWishlist(int propertyId) {
+    final wishlist = wishlistResponse.value;
+    if (wishlist != null) {
+      // Remove the property from the list
+      wishlist.properties.data.removeWhere((property) => property.id == propertyId);
 
+      // Update the total count
+      wishlist.properties.total = wishlist.properties.data.length;
+
+      // Update the wishlistResponse to trigger a UI rebuild
+      wishlistResponse.value = wishlist;
+      wishlistResponse.refresh(); // Force UI to rebuild
+    }
+  }
 
   Future<void> fetchWishlist() async {
     // Retrieve token from SharedPreferences
@@ -64,6 +79,7 @@ class SavedPropertiesController extends GetxController {
       print("Exception when fetching wishlist: $e");
     }
   }
+
 
 
 

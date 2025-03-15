@@ -11,8 +11,127 @@ import 'package:luxury_real_estate_flutter_ui_kit/configs/app_style.dart';
 import 'package:html/parser.dart' as html;
 import 'package:html_unescape/html_unescape.dart';
 import 'package:flutter_html/flutter_html.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:html/parser.dart' as html;
+import 'package:html_unescape/html_unescape.dart';
+import 'package:flutter_html/flutter_html.dart';
+import 'needs_detail.dart';
 
 class CustomerNeedsView extends StatelessWidget {
+  final CustomerNeedsController controller = Get.put(CustomerNeedsController());
+
+  String cleanDescription(String htmlString) {
+    HtmlUnescape unescape = HtmlUnescape();
+    String decodedString = unescape.convert(htmlString);
+    decodedString = unescape.convert(decodedString);
+
+    final document = html.parse(decodedString);
+    String parsedString = document.body?.text ?? '';
+
+    parsedString = parsedString.replaceAll(RegExp(r'<[^>]*>'), '');
+    parsedString = parsedString.replaceAll(RegExp(r'\s+'), ' ').trim();
+
+    return parsedString;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColor.whiteColor,
+      appBar: AppBar(
+        backgroundColor: AppColor.whiteColor,
+        title: Text(
+          'Customer Needs',
+          style: AppStyle.heading3SemiBold(color: AppColor.textColor),
+        ),
+        centerTitle: true,
+      ),
+      body: Obx(() {
+        if (controller.loading.value) {
+          return Center(child: CircularProgressIndicator());
+        } else {
+          return ListView.builder(
+            padding: EdgeInsets.all(12),
+            itemCount: controller.customerNeeds.length,
+            itemBuilder: (context, index) {
+              final need = controller.customerNeeds[index];
+              final truncatedDescription = need.description.length > 100
+                  ? '${need.description.substring(0, 100)}...' // Truncate description
+                  : need.description;
+
+              return Card(
+                color: AppColor.backgroundColor,
+                elevation: 4,
+                margin: EdgeInsets.symmetric(vertical: 10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Title
+                      Text(
+                        need.title,
+                        style: AppStyle.headingSemiBold(color: Colors.black87),
+                      ),
+                      SizedBox(height: 8),
+                      // Truncated Description
+                      Html(
+                        data: truncatedDescription,
+                        style: {
+                          "body": Style(
+                            margin: Margins.zero,
+                            padding: HtmlPaddings.zero,
+                          ),
+                          "p": Style(
+                            fontSize: FontSize(16),
+                            lineHeight: LineHeight(1.6),
+                            color: AppColor.descriptionColor,
+                            margin: Margins.only(bottom: 12),
+                          ),
+                        },
+                      ),
+                      // Read More Button for each requirement
+                      TextButton(
+                        onPressed: () {
+                          // Navigate to the detail view for this requirement
+                          Get.to(() => CustomerNeedDetailView(need: need));
+                        },
+                        child: Text(
+                          'Read More',
+                          style: TextStyle(color: AppColor.primaryColor),
+                        ),
+                      ),
+                      Divider(),
+                      // Location
+                      Row(
+                        children: [
+                          Icon(Icons.location_on, color: Colors.blueGrey, size: 18),
+                          SizedBox(width: 5),
+                          Expanded(
+                            child: Text(
+                              'Location: ${need.location}',
+                              style: AppStyle.heading5SemiBold(color: Colors.black87),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        }
+      }),
+    );
+  }
+}
+
+/*class CustomerNeedsView extends StatelessWidget {
 
   final CustomerNeedsController controller = Get.put(CustomerNeedsController());
   String cleanDescription(String htmlString) {
@@ -132,4 +251,4 @@ class CustomerNeedsView extends StatelessWidget {
       }),
     );
   }
-}
+}*/

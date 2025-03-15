@@ -17,7 +17,11 @@ import 'package:luxury_real_estate_flutter_ui_kit/model/property__model.dart';
 
 
 class SearchView extends StatelessWidget {
-  SearchView({super.key});
+  final String source; // Add this field to store the source
+
+  SearchView({super.key}) : source = Get.arguments?['source'] ?? 'home'; // Default to 'home' if no source is provided
+ // String screenName;
+  //SearchView({/*required this.screenName,*/super.key});
 
   SearchFilterController searchFilterController =
       Get.put(SearchFilterController());
@@ -32,6 +36,9 @@ class SearchView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    print('Navigation Stack: ${Get.routing.route}');
+    print('Previous Route: ${Get.routing.previous}');
+
 
 
     Future.delayed(Duration(milliseconds: 100), () {
@@ -48,9 +55,10 @@ class SearchView extends StatelessWidget {
     });
 
 
-
-    final List<Map<String, dynamic>> selectedProperties =
-        Get.arguments ?? []; // Default to an empty list if no arguments are passed
+    final Map<String, dynamic> arguments = Get.arguments ?? {};
+    final List<Map<String, dynamic>> selectedProperties = arguments['selectedProperties'] ?? [];
+    //final List<Map<String, dynamic>> selectedProperties =
+       // Get.arguments ?? []; // Default to an empty list if no arguments are passed
 
     // Debugging: Check if arguments are received after a slight delay
     Future.delayed(Duration(milliseconds: 100), () {
@@ -190,7 +198,7 @@ class SearchView extends StatelessWidget {
             onPressed: () async {
               final String tabValue = searchFilterController.selectLookingFor.value == 0
                   ? "rent"
-                  : "buy"; // Example logic for tab value
+                  : "sale"; // Example logic for tab value
               final String locationId = searchFilterController.selectedLocationId.value.toString();
               final double minBudget = searchFilterController.values.value.start;
               final double maxBudget = searchFilterController.values.value.end;
@@ -234,19 +242,43 @@ class SearchView extends StatelessWidget {
 
 
               );
-
-              if (response != null) {
+                  if (response != null) {
+                     if (source == 'home') {
+                       Get.toNamed(
+                       AppRoutes.propertyListView,
+                       arguments: response,
+                           );
+                      } else if (source == 'map') {
+    // Navigate to the PropertyMapScreen with the fetched data
+                              Get.toNamed(
+                             AppRoutes.map,
+                             arguments: response, // Pass the fetched property data
+                                  );
+                                   }
+                                } else {
+                              print("Failed to fetch properties");
+                                  }
+                               },
+              /*if (response != null) {
                 print("API data fetched successfully");
+                if (source == 'home') {
+                    Get.toNamed(
+                   AppRoutes.propertyListView,
+                   arguments: response,
+                        );
+                } else if (source == 'map') {
+                    Get.back(); // Navigate back to the map screen
+                             }
 
                 // Navigate to the propertyListView, passing the response directly
-                Get.toNamed(
+               /* Get.toNamed(
                   AppRoutes.propertyListView,
                   arguments: response,  // Pass the response as an argument
-                );
+                );*/
               } else {
                 print("Failed to fetch properties");
-              }
-            },
+              }*/
+
             backgroundColor: AppColor.primaryColor,
             child: Text(
               AppString.seeall,

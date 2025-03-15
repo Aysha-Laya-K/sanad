@@ -1,7 +1,7 @@
 class AppString {
   String userType = '';
-  static const String appName = "Real Estate";
-  static const String appLogoName = "Real Estate"; //"Luxury";
+  static const String appName = "Sanad";
+  static const String appLogoName = "Sanad"; //"Luxury";
 
   static const String onboardTitle1 = "Discover your unique Dream Home";
   static const String onboardTitle2 = "Sell your property in just One Click";

@@ -39,6 +39,8 @@ class Property {
   final String totalBathroom;
   final String totalArea;
   final String status;
+  final double? lat;
+  final double? lon;
   final String isFeatured;
   final int cityId;
   final int propertyTypeId;
@@ -64,6 +66,8 @@ class Property {
     required this.cityId,
     required this.propertyTypeId,
     required this.totalRating,
+    this.lat,
+    this.lon,
     this.ratingAverage,
     required this.agent,
   });
@@ -87,6 +91,8 @@ class Property {
       cityId: json['city_id'],
       propertyTypeId: json['property_type_id'],
       totalRating: json['totalRating'],
+      lat: json["lat"] != null ? double.tryParse(json["lat"].toString()) : null,
+      lon: json["lon"] != null ? double.tryParse(json["lon"].toString()) : null,
       ratingAverage: json['ratingAvarage']?.toDouble(),
       agent: Agent.fromJson(json['agent']),
     );
