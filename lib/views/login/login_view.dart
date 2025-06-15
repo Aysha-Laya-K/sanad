@@ -18,14 +18,14 @@ class LoginView extends StatelessWidget {
 
   LoginController loginController = Get.put(LoginController());
   LoginCountryPickerController loginCountryPickerController =
-      Get.put(LoginCountryPickerController());
+  Get.put(LoginCountryPickerController());
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColor.whiteColor,
       body: buildLoginFields(context),
-      bottomNavigationBar: buildTextButton(),
+
     );
   }
 
@@ -42,14 +42,15 @@ class LoginView extends StatelessWidget {
           AppString.loginString,
           style: AppStyle.heading4Regular(color: AppColor.descriptionColor),
         ).paddingOnly(top: AppSize.appSize12),
-        Obx(() => Container(
+        Obx(() =>
+            Container(
               padding: EdgeInsets.only(
                 top: loginController.hasFocus.value ||
-                        loginController.hasInput.value
+                    loginController.hasInput.value
                     ? AppSize.appSize6
                     : AppSize.appSize14,
                 bottom: loginController.hasFocus.value ||
-                        loginController.hasInput.value
+                    loginController.hasInput.value
                     ? AppSize.appSize8
                     : AppSize.appSize14,
                 left: loginController.hasFocus.value
@@ -60,7 +61,7 @@ class LoginView extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppSize.appSize12),
                 border: Border.all(
                   color: loginController.hasFocus.value ||
-                          loginController.hasInput.value
+                      loginController.hasInput.value
                       ? AppColor.primaryColor
                       : AppColor.descriptionColor,
                 ),
@@ -69,21 +70,21 @@ class LoginView extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   loginController.hasFocus.value ||
-                          loginController.hasInput.value
+                      loginController.hasInput.value
                       ? Text(
-                          AppString.phoneNumber,
-                          style: AppStyle.heading6Regular(
-                              color: AppColor.primaryColor),
-                        ).paddingOnly(
-                          left: loginController.hasInput.value
-                              ? (loginController.hasFocus.value
-                                  ? AppSize.appSize16
-                                  : AppSize.appSize0)
-                              : AppSize.appSize16,
-                          bottom: loginController.hasInput.value
-                              ? AppSize.appSize2
-                              : AppSize.appSize2,
-                        )
+                    AppString.phoneNumber,
+                    style: AppStyle.heading6Regular(
+                        color: AppColor.primaryColor),
+                  ).paddingOnly(
+                    left: loginController.hasInput.value
+                        ? (loginController.hasFocus.value
+                        ? AppSize.appSize16
+                        : AppSize.appSize0)
+                        : AppSize.appSize16,
+                    bottom: loginController.hasInput.value
+                        ? AppSize.appSize2
+                        : AppSize.appSize2,
+                  )
                       : const SizedBox.shrink(),
                   Row(
                     children: [
@@ -102,8 +103,6 @@ class LoginView extends StatelessWidget {
                         ),
                       ),
                       SizedBox(width: AppSize.appSize8),
-
-
 
 
                       Expanded(
@@ -133,17 +132,17 @@ class LoginView extends StatelessWidget {
                                   color: AppColor.descriptionColor),
                               border: OutlineInputBorder(
                                 borderRadius:
-                                    BorderRadius.circular(AppSize.appSize12),
+                                BorderRadius.circular(AppSize.appSize12),
                                 borderSide: BorderSide.none,
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius:
-                                    BorderRadius.circular(AppSize.appSize12),
+                                BorderRadius.circular(AppSize.appSize12),
                                 borderSide: BorderSide.none,
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius:
-                                    BorderRadius.circular(AppSize.appSize12),
+                                BorderRadius.circular(AppSize.appSize12),
                                 borderSide: BorderSide.none,
                               ),
                             ),
@@ -176,24 +175,4 @@ class LoginView extends StatelessWidget {
     );
   }
 
-  Widget buildTextButton() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text(
-          AppString.dontHaveAccount,
-          style: AppStyle.heading5Regular(color: AppColor.descriptionColor),
-        ),
-        GestureDetector(
-          onTap: () {
-            Get.offNamed(AppRoutes.registerView);
-          },
-          child: Text(
-            AppString.registerButton,
-            style: AppStyle.heading5Medium(color: AppColor.primaryColor),
-          ),
-        ),
-      ],
-    ).paddingOnly(bottom: AppSize.appSize26);
-  }
 }

@@ -17,9 +17,13 @@ import 'package:luxury_real_estate_flutter_ui_kit/model/profile_model.dart';
 import 'package:luxury_real_estate_flutter_ui_kit/configs/share_pref.dart';
 import 'saved_properties_controller.dart';
 import 'package:flutter/foundation.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/model/banner_model.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/configs/app_size.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/controller/propertytype_list_Contoller.dart';
 
 
 class HomeController extends GetxController {
+  final PropertyTypeListController propertyTypeListController = Get.put(PropertyTypeListController());
   TextEditingController searchController = TextEditingController();
   RxInt selectProperty = 0.obs;
   RxInt selectCountry = 0.obs;
@@ -40,6 +44,8 @@ class HomeController extends GetxController {
   var mapDataResponse = Rx<MapDataResponse?>(null);
   RxMap<int, bool> isSavedMap = RxMap<int, bool>();
   Rx<UserProfile?> userProfile = Rx<UserProfile?>(null);
+  var homeBanner = Rx<HomeBannerResponse?>(null);
+  var isLoadingBanner = false.obs;
 
   @override
 
@@ -51,6 +57,7 @@ class HomeController extends GetxController {
     fetchAgents();
     fetchNewProperty(purpose);
     checkTokenAndFetchProfile();
+    fetchHomeBanner();
     print("Current purpose: $purpose");// Fetch property types when the controller initializes
   }
 
@@ -67,7 +74,25 @@ class HomeController extends GetxController {
       userProfile.value = null;
     }
   }
+  Future<void> fetchHomeBanner() async {
+    try {
+      isLoadingBanner.value = true; // Show loading indicator
+      final response = await http.get(
+        Uri.parse("https://project.artisans.qa/realestate/api/get-home-banner"),
+      );
 
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        homeBanner.value = HomeBannerResponse.fromJson(data); // Parse and store banner data
+      } else {
+        Get.snackbar("Error", "Failed to load home banner");
+      }
+    } catch (e) {
+      Get.snackbar("Error", "An error occurred: $e");
+    } finally {
+      isLoadingBanner.value = false; // Hide loading indicator
+    }
+  }
   // API call to fetch user profile
   Future<void> _fetchProfileData(String token) async {
     try {
@@ -596,9 +621,27 @@ class HomeController extends GetxController {
     selectCountry.value = index;
     // Dynamically set the purpose based on the index
     purpose = (index == 0) ? 'rent' : 'sale';
-    print("Current purpose: $purpose");// Index 0 is for rent, index 1 is for buy
-    fetchFeaturedProperty(purpose);
-    fetchNewProperty(purpose);// Fetch the featured properties with the updated purpose
+    print("Current purpose: $purpose"); // Index 0 is for rent, index 1 is for buy
+
+    // Skip fetching featuredProperties and newProperties if index is AppSize.size2
+    if (index != AppSize.size2) {
+      fetchFeaturedProperty(purpose);
+      fetchNewProperty(purpose);
+
+      // Ensure propertyTypes is not empty and index is within bounds
+      if (propertyTypes.isNotEmpty && index < propertyTypes.length) {
+        // Get the property type ID from the propertyTypes list
+        final propertyTypeId = propertyTypes[index].id.toString();
+
+        // Call fetchTypeProperties from PropertyTypeListController
+        propertyTypeListController.fetchTypeProperties(
+          id: propertyTypeId, // Pass the property type ID
+          purpose: purpose,
+        );
+      } else {
+        print("Property types list is empty or index is out of bounds.");
+      }
+    }
   }
 
 

@@ -7,6 +7,7 @@ import 'package:luxury_real_estate_flutter_ui_kit/model/propertydetails_model.da
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:luxury_real_estate_flutter_ui_kit/model/propertydetails_model.dart';
+import 'package:luxury_real_estate_flutter_ui_kit/model/review_model.dart';
 
 class PropertyDetailsController extends GetxController {
   RxBool isExpanded = false.obs;
@@ -28,6 +29,7 @@ class PropertyDetailsController extends GetxController {
   TextEditingController mobileNumberController = TextEditingController();
   TextEditingController emailController = TextEditingController();
   Rx<ApiResponse?> propertyDetails = Rx<ApiResponse?>(null);
+  RxList<Review> reviewsList = <Review>[].obs;
 
   RxList<bool> isSimilarPropertyLiked = <bool>[].obs;
 
@@ -93,6 +95,24 @@ class PropertyDetailsController extends GetxController {
     }
   }
 
+  Future<void> fetchReviews(int propertyId) async {
+    final String url = 'https://project.artisans.qa/realestate/api/get-property-review?property_id=$propertyId';
+
+    try {
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = jsonDecode(response.body);
+        print('Review API Response: $data');
+        final ReviewResponse reviewResponse = ReviewResponse.fromJson(data);
+        reviewsList.value = reviewResponse.reviews ?? [];
+      } else {
+        print('Error: API returned status code ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Error occurred while fetching reviews: $error');
+    }
+  }
 
 
 

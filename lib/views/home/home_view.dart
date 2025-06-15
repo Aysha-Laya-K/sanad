@@ -271,7 +271,69 @@ class _HomeViewState extends State<HomeView> {
           ),
           Column(
             children: [
-              CarouselSlider.builder(
+              Obx(() {
+                if (homeController.isLoadingBanner.value) {
+                  // Show a loading indicator while fetching the banner data
+                  return Center(
+                   // child: CircularProgressIndicator(),
+                  );
+                } else if (homeController.homeBanner.value != null) {
+                  // Display the banner data from the API
+                  final banner = homeController.homeBanner.value!.banner;
+                  return Column(
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          // Handle banner tap (if needed)
+                        },
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(querySize.height * 0.02),
+                          child: Container(
+                            width: double.infinity,
+                            height: querySize.height * 0.24,
+                            decoration: BoxDecoration(
+                              image: DecorationImage(
+                                image: NetworkImage(banner.bgImage), // Use the banner image from the API
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                           /* child: Stack(
+                              children: [
+                                // Transparent container for the title at top-left
+                                Positioned(
+                                  top: 16, // Adjust top padding as needed
+                                  left: 16, // Adjust left padding as needed
+                                  child: Container(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 12, // Horizontal padding
+                                      vertical: 4, // Vertical padding
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withOpacity(0.5), // Transparent black background
+                                      borderRadius: BorderRadius.circular(12), // Curved corners (adjust radius as needed)
+                                    ),
+                                    child: Text(
+                                      banner.title, // Use the banner title from the API
+                                      style: AppStyle.heading3Medium(color: Colors.white),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),*/
+                          ),
+                        ),
+                      ),
+                      //SizedBox(height: querySize.height * 0.01),
+                    ],
+                  );
+                }else {
+                  // Show a fallback message if no banner data is available
+                  return Center(
+                   // child: Text("No banner data available"),
+                  );
+                }
+              }),
+              /*CarouselSlider.builder(
                 itemCount: activityController.propertyListImage.length,
                 itemBuilder: (context, index, realIndex) {
                   return Padding(
@@ -338,7 +400,7 @@ class _HomeViewState extends State<HomeView> {
                   autoPlay: true,
                   autoPlayInterval: const Duration(seconds: 5),
                 ),
-              ),
+              ),*/
               SizedBox(
                 height: querySize.height * 0.01,
               ),
@@ -1226,196 +1288,169 @@ class _HomeViewState extends State<HomeView> {
     ),
 
 
+      Obx(() {
+        return Column(
+          children: [
+            // Agents Section
+            Row(
+              children: [
+                Text(
+                  "Agents ",
+                  style: AppStyle.heading3SemiBold(color: AppColor.textColor),
+                ),
+                Text(
+                  AppString.inWesternMumbai,
+                  style: AppStyle.heading5Regular(color: AppColor.descriptionColor),
+                ),
+              ],
+            ).paddingOnly(
+              top: AppSize.appSize26,
+              left: AppSize.appSize16,
+              right: AppSize.appSize16,
+            ),
+            SizedBox(
+              height: AppSize.appSize95,
+              child: ListView.builder(
+                shrinkWrap: true,
+                scrollDirection: Axis.horizontal,
+                physics: const ClampingScrollPhysics(),
+                padding: const EdgeInsets.only(left: AppSize.appSize16),
+                itemCount: homeController.agentsList.length,
+                itemBuilder: (context, index) {
+                  final agent = homeController.agentsList[index];
+                  return GestureDetector(
+                    onTap: () {
+                      Get.toNamed(AppRoutes.popularBuildersView, arguments: agent);
+                    },
+                    child: Container(
+                      width: AppSize.appSize160,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: AppSize.appSize16,
+                        horizontal: AppSize.appSize10,
+                      ),
+                      margin: const EdgeInsets.only(right: AppSize.appSize16),
+                      decoration: BoxDecoration(
+                        color: AppColor.secondaryColor,
+                        borderRadius: BorderRadius.circular(AppSize.appSize12),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Center(
+                            child: CircleAvatar(
+                              radius: AppSize.appSize20,
+                              backgroundColor: AppColor.primaryColor,
+                              child: Icon(
+                                Icons.contacts_outlined,
+                                size: AppSize.appSize24,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                          Center(
+                            child: Text(
+                              agent.name,
+                              style: AppStyle.heading5Medium(color: AppColor.textColor),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ).paddingOnly(top: AppSize.appSize16),
 
-          Row(
-            children: [
-              Text(
-                "Agents ",
-                style: AppStyle.heading3SemiBold(color: AppColor.textColor),
-              ),
-              Text(
-                AppString.inWesternMumbai,
-                style:
-                    AppStyle.heading5Regular(color: AppColor.descriptionColor),
-              ),
-            ],
-          ).paddingOnly(
-            top: AppSize.appSize26,
-            left: AppSize.appSize16,
-            right: AppSize.appSize16,
-          ),
-          SizedBox(
-            height: AppSize.appSize95,
-            child: ListView.builder(
-              shrinkWrap: true,
-              scrollDirection: Axis.horizontal,
-              physics: const ClampingScrollPhysics(),
-              padding: const EdgeInsets.only(left: AppSize.appSize16),
-              itemCount: homeController.agentsList.length,
-              itemBuilder: (context, index) {
-                final agent = homeController.agentsList[index];
-                return GestureDetector(
-                  onTap: () {
-                    //if (index == AppSize.size0) {
-                    Get.toNamed(AppRoutes.popularBuildersView,
-                      arguments: agent);
-                    // }
-                  },
-                  child: Container(
-                    width: AppSize.appSize160,
-                    padding: const EdgeInsets.symmetric(
-                      vertical: AppSize.appSize16,
-                      horizontal: AppSize.appSize10,
-                    ),
-                    margin: const EdgeInsets.only(right: AppSize.appSize16),
-                    decoration: BoxDecoration(
-                      color: AppColor.secondaryColor,
-                      borderRadius: BorderRadius.circular(AppSize.appSize12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            // Upcoming Projects Section
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  AppString.upcomingProject,
+                  style: AppStyle.heading3SemiBold(color: AppColor.textColor),
+                ),
+              ],
+            ).paddingOnly(
+              top: AppSize.appSize26,
+              left: AppSize.appSize16,
+              right: AppSize.appSize16,
+            ),
+            SizedBox(
+              height: AppSize.appSize200,
+              child: ListView.builder(
+                shrinkWrap: true,
+                physics: const ClampingScrollPhysics(),
+                padding: const EdgeInsets.only(left: AppSize.appSize16),
+                scrollDirection: Axis.horizontal,
+                itemCount: homeController.serviceTypes.length,
+                itemBuilder: (context, index) {
+                  return GestureDetector(
+                    onTap: () async {
+                      int serviceId = homeController.serviceTypes[index].id;
+                      print('Service ID: $serviceId');
+                      await homeController.fetchServiceList(serviceId);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ServicesList(
+                            serviceName: homeController.serviceTypes[index].name,
+                          ),
+                        ),
+                      );
+                    },
+                    child: Stack(
                       children: [
-                        Center(
-                          child: CircleAvatar(
-                            radius: AppSize.appSize20, // Adjust the radius for the desired size
-                            backgroundColor: AppColor.primaryColor, // Set the background color
-                            child: Icon(
-                              Icons.contacts_outlined, // Icon representing an agent
-                              size: AppSize.appSize24, // Adjust the icon size inside the CircleAvatar
-                              color: Colors.white, // Set the icon color
+                        Container(
+                          width: AppSize.appSize300,
+                          margin: const EdgeInsets.only(right: AppSize.appSize16),
+                          padding: const EdgeInsets.all(AppSize.appSize10),
+                          decoration: BoxDecoration(
+                            color: AppColor.secondaryColor,
+                            borderRadius: BorderRadius.circular(AppSize.appSize12),
+                            image: DecorationImage(
+                              fit: BoxFit.cover,
+                              image: NetworkImage(homeController.serviceTypes[index].image),
                             ),
                           ),
                         ),
-
-                        Center(
-                          child: Text(
-                              agent.name,
-                            style: AppStyle.heading5Medium(
-                                color: AppColor.textColor),
+                        Container(
+                          width: AppSize.appSize300,
+                          decoration: BoxDecoration(
+                            color: Color.fromARGB(101, 0, 0, 0),
+                            borderRadius: BorderRadius.circular(AppSize.appSize12),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              Padding(
+                                padding: EdgeInsets.symmetric(horizontal: querySize.width * 0.025),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      homeController.serviceTypes[index].name,
+                                      style: AppStyle.heading3(color: AppColor.whiteColor),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              SizedBox(
+                                height: querySize.height * 0.03,
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
-                  ),
-                );
-              },
-            ),
-          ).paddingOnly(top: AppSize.appSize16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                AppString.upcomingProject,
-                style: AppStyle.heading3SemiBold(color: AppColor.textColor),
-              ),
-             /* GestureDetector(
-                onTap: () {
-                  print('touched');
-
-
-                   Navigator.push(
-                      context,
-                       MaterialPageRoute(
-                        builder: (context) => ActivityView(),
-                      ));
+                  );
                 },
-                child: Text(
-                  AppString.viewAll,
-                  style:
-                      AppStyle.heading5Medium(color: AppColor.descriptionColor),
-                ),
-              ),*/
-            ],
-          ).paddingOnly(
-            top: AppSize.appSize26,
-            left: AppSize.appSize16,
-            right: AppSize.appSize16,
-          ),
-
-
-
-          SizedBox(
-            height: AppSize.appSize200,
-            child: ListView.builder(
-              shrinkWrap: true,
-              physics: const ClampingScrollPhysics(),
-              padding: const EdgeInsets.only(left: AppSize.appSize16),
-              scrollDirection: Axis.horizontal,
-              itemCount: homeController.serviceTypes.length,  // Using serviceTypes list here
-              itemBuilder: (context, index) {
-                return GestureDetector(
-                  onTap: () async {
-                    int serviceId = homeController.serviceTypes[index].id;  // Get the service ID
-
-                    print('Service ID: $serviceId');  // Debugging: Print service ID
-
-                    await homeController.fetchServiceList(serviceId);  // Call API with service ID
-
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ServicesList(
-                          serviceName: homeController.serviceTypes[index].name,
-                        ),
-                      ),
-                    );
-                  },
-
-                  child: Stack(
-                    children: [
-                      Container(
-                        width: AppSize.appSize300,
-                        margin: const EdgeInsets.only(right: AppSize.appSize16),
-                        padding: const EdgeInsets.all(AppSize.appSize10),
-                        decoration: BoxDecoration(
-                          color: AppColor.secondaryColor  ,
-                          borderRadius: BorderRadius.circular(AppSize.appSize12),
-                          image: DecorationImage(
-                            fit: BoxFit.cover,
-                            image: NetworkImage(homeController.serviceTypes[index].image),  // Using service image here
-                          ),
-                        ),
-                      ),
-                      Container(
-                        width: AppSize.appSize300,
-                        decoration: BoxDecoration(
-                          color: Color.fromARGB(101, 0, 0, 0),
-                          borderRadius: BorderRadius.circular(AppSize.appSize12),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            Padding(
-                              padding: EdgeInsets.symmetric(horizontal: querySize.width * 0.025),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    homeController.serviceTypes[index].name,  // Using service name here
-                                    style: AppStyle.heading3(color: AppColor.whiteColor),
-                                  ),
-                                  // Text(
-                                  //   homeController.upcomingProjectPriceList[index],
-                                  //   style: AppStyle.heading5(color: AppColor.whiteColor),
-                                  // ),
-                                ],
-                              ),
-                            ),
-                            SizedBox(
-                              height: querySize.height * 0.03,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ).paddingOnly(top: AppSize.appSize16),
-
+              ),
+            ).paddingOnly(top: AppSize.appSize16),
+          ],
+        );
+      })
         ],
       ).paddingOnly(top: AppSize.appSize50, bottom: AppSize.appSize20),
     );

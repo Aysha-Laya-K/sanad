@@ -92,6 +92,7 @@ class _PropertyDetailsViewState extends State<PropertyDetailsView> {
 
     // Fetch the property details
     propertyDetailsController.fetchPropertyDetails(propertyId);
+    propertyDetailsController.fetchReviews(propertyId);
 
     print('Current Route: ${Get.routing.current}');
   }
@@ -1590,11 +1591,12 @@ class _PropertyDetailsViewState extends State<PropertyDetailsView> {
                 style: AppStyle.heading3SemiBold(color: AppColor.textColor),
               ),
               GestureDetector(
-                onTap: () {
-                  //Get.toNamed(AppRoutes.addReviewsForPropertyView);
-                  Get.to(() => AddReviewsForPropertyView(),
-
-                      arguments: propertyId);
+                onTap: () async {
+                  final result = await Get.to(() => AddReviewsForPropertyView(), arguments: propertyId);
+                  if (result != null) {
+                    // Refresh the reviews list if a review was added
+                    propertyDetailsController.fetchReviews(propertyId);
+                  }
                 },
                 child: Text(
                   AppString.addReviews,
@@ -1608,96 +1610,86 @@ class _PropertyDetailsViewState extends State<PropertyDetailsView> {
             right: AppSize.appSize16,
           ),
 
-          propertyDetails?.reviews?.data?.isEmpty ?? true
-              ? Center(
-            child: Text(
-              'No reviews available',
-              style: AppStyle.heading5Regular(color: AppColor.descriptionColor),
-            ),
-          )
-              :
-
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: propertyDetails?.reviews?.data?.length ?? 0,
-            itemBuilder: (context, index) {
-              final review = propertyDetails?.reviews?.data?[index];
-              return Container(
-                margin: const EdgeInsets.only(bottom: AppSize.appSize16),
-                padding: const EdgeInsets.all(AppSize.appSize16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(AppSize.appSize16),
-                  border: Border.all(
-                    color: AppColor.descriptionColor,
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // Review Date
-                        Text(
-                          propertyDetailsController.reviewDateList[index],
-                          style: AppStyle.heading6Regular(
-                              color: AppColor.descriptionColor),
-                        ),
-
-                        // Dynamic Star Rating
-                        Row(
-                          children: List.generate(5, (starIndex) {
-                            return Icon(
-                              Icons.star,
-                              color: (starIndex < (review?.rating ?? 0))
-                                  ? Colors.orange // Filled star
-                                  : Colors.grey,  // Empty star
-                              size: AppSize.appSize18, // Adjust the size
-                            );
-                          }),
-                        ),
-                      ],
-                    ),
-
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.account_circle, // You can replace this with another icon if you prefer
-                          size: AppSize.appSize36,
-                          color: AppColor.descriptionColor, // Customize color as needed
-                        ),
-
-                        Text(
-                          review?.user?.name ?? '',
-                          style: AppStyle.heading5Medium(
-                              color: AppColor.textColor),
-                        ).paddingOnly(left: AppSize.appSize6),
-                      ],
-                    ).paddingOnly(top: AppSize.appSize10),
-                    Text(
-                      propertyDetailsController.reviewTypeList[index],
-                      style: AppStyle.heading5Medium(
-                          color: AppColor.descriptionColor),
-                    ).paddingOnly(top: AppSize.appSize10),
-                    Text(
-                      review?.review ?? '',
-                      style:
-                          AppStyle.heading5Regular(color: AppColor.textColor),
-                    ).paddingOnly(top: AppSize.appSize10),
-                  ],
+          Obx(() {
+            if (propertyDetailsController.reviewsList.isEmpty) {
+              return Center(
+                child: Text(
+                  'No reviews available',
+                  style: AppStyle.heading5Regular(color: AppColor.descriptionColor),
                 ),
               );
-            },
-          ).paddingOnly(
-            top: AppSize.appSize16,
-            left: AppSize.appSize16,
-            right: AppSize.appSize16,
-          ),
+            }
+
+            return ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: propertyDetailsController.reviewsList.length,
+              itemBuilder: (context, index) {
+                final review = propertyDetailsController.reviewsList[index];
+                return Container(
+                  margin: const EdgeInsets.only(bottom: AppSize.appSize16),
+                  padding: const EdgeInsets.all(AppSize.appSize16),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(AppSize.appSize16),
+                    border: Border.all(
+                      color: AppColor.descriptionColor,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            review.createdAt?.toString() ?? '',
+                            style: AppStyle.heading6Regular(color: AppColor.descriptionColor),
+                          ),
+                          Row(
+                            children: List.generate(5, (starIndex) {
+                              return Icon(
+                                Icons.star,
+                                color: (starIndex < (review.rating ?? 0))
+                                    ? Colors.orange
+                                    : Colors.grey,
+                                size: AppSize.appSize18,
+                              );
+                            }),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.account_circle,
+                            size: AppSize.appSize36,
+                            color: AppColor.descriptionColor,
+                          ),
+                          Text(
+                            review.user?.name ?? 'Anonymous',
+                            style: AppStyle.heading5Medium(color: AppColor.textColor),
+                          ).paddingOnly(left: AppSize.appSize6),
+                        ],
+                      ).paddingOnly(top: AppSize.appSize10),
+                      Text(
+                        review.review ?? '',
+                        style: AppStyle.heading5Regular(color: AppColor.textColor),
+                      ).paddingOnly(top: AppSize.appSize10),
+                    ],
+                  ),
+                );
+              },
+            ).paddingOnly(
+              top: AppSize.appSize16,
+              left: AppSize.appSize16,
+              right: AppSize.appSize16,
+            );
+          }),
 
 
 
-          Text(
+
+  Text(
             AppString.similarHomesForYou,
             style: AppStyle.heading4Medium(color: AppColor.textColor),
           ).paddingOnly(

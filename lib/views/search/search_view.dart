@@ -23,8 +23,7 @@ class SearchView extends StatelessWidget {
  // String screenName;
   //SearchView({/*required this.screenName,*/super.key});
 
-  SearchFilterController searchFilterController =
-      Get.put(SearchFilterController());
+  SearchFilterController searchFilterController = Get.put(SearchFilterController(), permanent: true);
   final FocusNode focusNode = FocusNode();
   final RxBool isFocused = false.obs;
 
@@ -70,6 +69,10 @@ class SearchView extends StatelessWidget {
       } else {
         print('No selected properties found.');
       }
+    });
+    // Reset filters when the view is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      searchFilterController.resetFilters();
     });
 
     return Scaffold(
@@ -200,10 +203,21 @@ class SearchView extends StatelessWidget {
                   ? "rent"
                   : "sale"; // Example logic for tab value
               final String locationId = searchFilterController.selectedLocationId.value.toString();
-              final double minBudget = searchFilterController.values.value.start;
-              final double maxBudget = searchFilterController.values.value.end;
-              final double minArea = searchFilterController.values2.value.start;
-              final double maxArea = searchFilterController.values2.value.end;
+              final double minBudget = tabValue == "rent"
+                  ? searchFilterController.values.value.start
+                  : searchFilterController.values1.value.start;
+
+              final double maxBudget = tabValue == "rent"
+                  ? searchFilterController.values.value.end
+                  : searchFilterController.values1.value.end;
+
+              final double minArea = tabValue == "rent"
+                  ? searchFilterController.values2.value.start
+                  : searchFilterController.values3.value.start;
+
+              final double maxArea = tabValue == "rent"
+                  ? searchFilterController.values2.value.end
+                  : searchFilterController.values3.value.end;
               final String propertyTypeId =
               searchFilterController.selectedPropertyTypeId.value.toString();
               final String furnishingValue = searchFilterController.selectLookingFor.value == 0
@@ -224,6 +238,10 @@ class SearchView extends StatelessWidget {
 
               final List<int> amenitiesList = searchFilterController.selectedAmenitiesIds;
               print("Tab Value sent to API: $tabValue");
+              print("Min Budget: $minBudget");
+              print("Max Budget: $maxBudget");
+              print("Min Area: $minArea");
+              print("Max Area: $maxArea");
               // Call fetchProperties with dynamic values, including location ID
               final PropertyResponse? response = await searchFilterController.fetchProperties(
                 tabValue: tabValue,
@@ -296,15 +314,24 @@ class SearchView extends StatelessWidget {
 
     return DefaultTabController(
       length: searchFilterController.propertyList.length,
-      initialIndex: 0,
+      initialIndex: searchFilterController.selectedTabIndex.value,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // TabBar for navigation
           TabBar(
             onTap: (index) {
+
               String selectedTabName = searchFilterController.propertyList[index];
               print("Selected Tab: $selectedTabName");
+              searchFilterController.selectedTabIndex.value = index;
+              // Update the contentType based on the selected tab
+              if (index == 0) {
+                searchFilterController.setContent(SearchContentType.searchFilter); // Rent tab
+              } else if (index == 1) {
+                searchFilterController.setContent(SearchContentType.searchFilter); // Buy tab
+              }
+
 
               // Update selectLookingFor based on the tab index
               searchFilterController.selectLookingFor.value = index == 0 ? 0 : 1;  // 0 for rent, 1 for buy
@@ -954,7 +981,7 @@ class SearchView extends StatelessWidget {
                               ),
                             ],
                           ),
-                          child: TextFormField(
+                          child:TextFormField(
                             controller: searchFilterController.searchController,
                             cursorColor: AppColor.primaryColor,
                             style: AppStyle.heading4Regular(color: AppColor.textColor),
@@ -1111,11 +1138,11 @@ class SearchView extends StatelessWidget {
                             ),
                           ),
                           child: Obx(() => RangeSlider(
-                            values: searchFilterController.values2.value,
+                            values: searchFilterController.values3.value,
                             min: AppSize.appSize50,
                             max: AppSize.appSize501,
                             onChanged: (value) {
-                              searchFilterController.updateValues2(value);
+                              searchFilterController.updateValues3(value);
                             },
                           )),
                         ).paddingOnly(
@@ -1139,7 +1166,7 @@ class SearchView extends StatelessWidget {
                                 ),
                                 child: Center(
                                   child: Obx(() => Text(
-                                    searchFilterController.startValueText2,
+                                    searchFilterController.startValueText3,
                                     style: AppStyle.heading5Medium(
                                         color: AppColor.textColor),
                                   )),
@@ -1162,7 +1189,7 @@ class SearchView extends StatelessWidget {
                                 ),
                                 child: Center(
                                   child: Obx(() => Text(
-                                    searchFilterController.endValueText2,
+                                    searchFilterController.endValueText3,
                                     style: AppStyle.heading5Medium(
                                         color: AppColor.textColor),
                                   )),
@@ -2202,6 +2229,13 @@ class SearchView extends StatelessWidget {
               controller: searchFilterController.searchController,
               cursorColor: AppColor.primaryColor,
               style: AppStyle.heading4Regular(color: AppColor.textColor),
+              onChanged: (value) {
+                if (value.isEmpty) {
+                  searchFilterController.locations.value = searchFilterController.allLocations;
+                } else {
+                  searchFilterController.filterLocations(value); // Filter locations based on user input
+                }
+              },
               decoration: InputDecoration(
                 hintText: AppString.searchCity,
                 hintStyle:
@@ -2286,11 +2320,9 @@ class SearchView extends StatelessWidget {
                     searchFilterController.setSelectedLocationId(location.id);
                     print("Selected Location ID: ${searchFilterController.selectedLocationId.value}");
 
-
                     // Optionally, hide the suggestions after selection
                     FocusScope.of(context).requestFocus(FocusNode());
-                    searchFilterController.locations.clear();  // Clear suggestions
-                    // Handle location selection here
+                    searchFilterController.locations.value = searchFilterController.allLocations;  // Reset to full list
                   },
                 );
               },

@@ -362,7 +362,7 @@ class _PropertyMapScreenState extends State<PropertyMapScreen> {
     return WillPopScope(
       onWillPop: () async {
         // Navigate to the home page when the back button is pressed
-        Get.offAllNamed(AppRoutes.homeView); // Replace '/home' with your home route
+        Get.offAllNamed(AppRoutes.bottomBarView); // Replace '/home' with your home route
         return false; // Prevent default back button behavior
       },
       child:

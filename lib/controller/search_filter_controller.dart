@@ -23,7 +23,7 @@ class SearchFilterController extends GetxController {
   RxList<Amenity> amenities = <Amenity>[].obs;
   RxList<int> selectedAmenitiesIds = <int>[].obs;
   var selectLookingFor = 0.obs; // Store selected amenity IDs
-
+  RxList<Location> allLocations = <Location>[].obs;
   Timer? _debounce;
   RxInt selectProperty = 0.obs;
   RxInt selectPropertyLooking = 0.obs;
@@ -70,17 +70,18 @@ class SearchFilterController extends GetxController {
   Rx<SearchContentType> contentType = SearchContentType.searchFilter.obs;
   var loading = true.obs;
   RxInt selectedLocationId = RxInt(0);
+  RxInt selectedTabIndex = 0.obs;
   @override
 
 
 
-  // Method to set the selected location ID
+  // Method to set the selected location IDf
 
 
-
-  // Method to set the selected location ID
   void setSelectedLocationId(int id) {
     selectedLocationId.value = id;
+    searchController.text = allLocations.firstWhere((location) => location.id == id).name;
+    locations.value = allLocations; // Reset to full list
   }
 
 
@@ -97,23 +98,17 @@ class SearchFilterController extends GetxController {
   }
 
 
-  Future<void> fetchLocations({int limit = 10, int offset = 0}) async {
-    loading.value = true;
-    final response = await http.get(
-      Uri.parse('https://project.artisans.qa/realestate/api/locations?limit=$limit&offset=$offset'),
-    );
-
+  Future<void> fetchLocations() async {
+    final response = await http.get(Uri.parse('https://project.artisans.qa/realestate/api/locations'));
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
-      List<Location> locationList = (data['locations'] as List)
+      allLocations.value = (data['locations'] as List)
           .map((json) => Location.fromJson(json))
           .toList();
-      locations.value = locationList;
-      print("success");
+      locations.value = allLocations; // Initialize locations with allLocations
+      print("Fetched Locations: ${allLocations.length}"); // Debugging
     } else {
-      print("failed");
-      throw Exception('Failed to load locations');
-
+      print("Failed to fetch locations: ${response.statusCode}");
     }
   }
 
@@ -246,7 +241,29 @@ print("--------------${sample.data.length}");
       print("Error while fetching properties: $e");
     }
   }*/
+  void resetFilters() {
+    // Reset all filters to their initial state
+    searchController.clear();
+    selectProperty.value = 0;
+    selectPropertyLooking.value = 0;
+    selectBedrooms.clear();
+    selectbathrooms.clear();
+    selectLookingFor.value = 0;
+    selectTypesOfProperty.value = 0;
+    values.value = const RangeValues(0, 100000);
+    values1.value = const RangeValues(0, 100000);
+    values2.value = const RangeValues(0, 10000);
+    values3.value = const RangeValues(0, 10000);
+    selectedAmenitiesIds.clear();
+    selectedLocationId.value = 0;
+    selectedTabIndex.value = 0;
+    contentType.value = SearchContentType.searchFilter;
 
+    // Optionally, you can re-fetch the initial data if needed
+    fetchLocations();
+    fetchAmenities();
+    fetchPropertyTypes();
+  }
 
   Future<PropertyResponse?> fetchProperties({
     required String tabValue,
@@ -327,8 +344,21 @@ print("--------------${sample.data.length}");
   void updatePropertyLooking(int index) {
     selectPropertyLooking.value = index;
   }
-
-
+  void filterLocations(String query) {
+    print("Filtering with query: $query"); // Debugging
+    if (query.isEmpty) {
+      // If the query is empty, show all locations
+      locations.value = allLocations;
+    } else {
+      // Filter the locations based on the query
+      locations.value = allLocations.where((location) {
+        final containsQuery = location.name.toLowerCase().contains(query.toLowerCase());
+        print("Location: ${location.name}, Contains Query: $containsQuery"); // Debugging
+        return containsQuery;
+      }).toList();
+    }
+    print("Filtered Locations: ${locations.length}"); // Debugging
+  }
   void updateBedrooms(int index) {
     String selectedBedroom = bedroomsList[index]; // Get the actual value from bedroomsList
     if (selectBedrooms.contains(selectedBedroom)) {
@@ -395,10 +425,11 @@ print("--------------${sample.data.length}");
   void updateValues2(RangeValues newValues) {
     values2.value = newValues;
   }
-
-  void setContent(SearchContentType type) {
-    contentType.value = type;
+  void updateValues3(RangeValues newValues) {
+    values3.value = newValues;
   }
+
+
 
   RxList<String> propertyList = [
     AppString.residential,
@@ -466,8 +497,14 @@ print("--------------${sample.data.length}");
   @override
   void onInit() {
     super.onInit();
+    fetchLocations(); // Fetch all locations when the controller initializes
+    print("All Locations: ${allLocations.length}"); // Debugging
+
     fetchAmenities();
     fetchPropertyTypes();
+
+    setContentBasedOnTab();
+
 
 
     selectBedrooms.add(bedroomsList[0]);
@@ -476,10 +513,22 @@ print("--------------${sample.data.length}");
     searchController.addListener(() {
       if (_debounce?.isActive ?? false) _debounce?.cancel();
       _debounce = Timer(const Duration(milliseconds: 500), () {
-        fetchLocations();
-
+        // Call filterLocations instead of fetchLocations
+        filterLocations(searchController.text);
       });
     });
+  }
+  void setContentBasedOnTab() {
+    if (selectedTabIndex.value == 0) {
+      setContent(SearchContentType.searchFilter); // Rent tab
+    } else if (selectedTabIndex.value == 1) {
+      setContent(SearchContentType.searchFilter); // Buy tab
+    }
+  }
+
+  void setContent(SearchContentType type) {
+    contentType.value = type;
+    print("Content Type Set to: $type"); // Debugging
   }
   @override
   void dispose() {
